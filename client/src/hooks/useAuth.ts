@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { DEFAULT_SERVER_URL } from "../constants";
 
 interface AuthState {
   accessToken: string | null;
@@ -72,7 +73,7 @@ export function useAuth() {
   }, []);
 
   const serverUrl = useCallback(
-    () => localStorage.getItem("vrcflow-serverUrl") || "http://localhost:8080",
+    () => localStorage.getItem("vrcflow-serverUrl") || DEFAULT_SERVER_URL,
     []
   );
 

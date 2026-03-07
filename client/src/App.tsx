@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./hooks/useAuth";
+import { DEFAULT_SERVER_URL } from "./constants";
 import AuthView from "./components/AuthView";
 import MicControl from "./components/MicControl";
 import TranslationView from "./components/TranslationView";
@@ -21,7 +22,7 @@ export default function App() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [serverUrl, setServerUrl] = useState(() =>
-    localStorage.getItem("vrcflow-serverUrl") || "http://localhost:8080"
+    localStorage.getItem("vrcflow-serverUrl") || DEFAULT_SERVER_URL
   );
   const [oscPort, setOscPort] = useState(() =>
     parseInt(localStorage.getItem("vrcflow-oscPort") || "9000", 10)
