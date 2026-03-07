@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-electron/
+release/
+.venv/
+__pycache__/
+*.pyc
+*.db
+.env
+.DS_Store
+.playwright-mcp/

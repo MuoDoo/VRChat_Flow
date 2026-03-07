@@ -1,0 +1,39 @@
+{
+  "app.title": "VRCFlow",
+
+  "auth.login": "Log in",
+  "auth.register": "Sign up",
+  "auth.username": "Username",
+  "auth.password": "Password",
+  "auth.logout": "Log out",
+  "auth.switchToRegister": "Don't have an account? Sign up",
+  "auth.switchToLogin": "Already have an account? Log in",
+  "auth.registerSuccessPending": "Registration successful. Please wait for admin approval.",
+  "auth.usernameRule": "3-20 characters, letters, numbers, underscore",
+  "auth.passwordRule": "At least 8 characters",
+
+  "mic.start": "Start",
+  "mic.stop": "Stop",
+  "mic.status.listening": "Listening...",
+  "mic.status.processing": "Processing...",
+  "mic.status.idle": "Ready",
+
+  "settings.title": "Settings",
+  "settings.serverUrl": "Server URL",
+  "settings.oscPort": "OSC Port",
+  "settings.language": "Language",
+  "settings.sourceLang": "Source Language",
+  "settings.targetLang": "Target Language",
+
+  "usage.remaining": "{{seconds}}s remaining today",
+
+  "error.AUTH_INVALID_TOKEN": "Session expired, please log in again",
+  "error.AUTH_ACCOUNT_INACTIVE": "Account not yet activated",
+  "error.AUTH_INVALID_CREDENTIALS": "Wrong username or password",
+  "error.AUTH_USERNAME_TAKEN": "Username already taken",
+  "error.AUTH_NOT_ADMIN": "Admin access required",
+  "error.RATE_LIMIT_DAILY": "Daily limit reached ({{limit}}s)",
+  "error.AUDIO_TOO_LONG": "Audio too long (max {{max}}s)",
+  "error.micPermissionDenied": "Microphone permission denied",
+  "error.transcribeFailed": "Recognition failed, please try again"
+}

@@ -1,0 +1,14 @@
+appId: com.vrcflow.app
+productName: VRCFlow
+directories:
+  buildResources: build
+  output: release
+files:
+  - dist
+  - dist-electron
+win:
+  target: nsis
+  arch: x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
