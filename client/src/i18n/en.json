@@ -36,6 +36,9 @@
   "error.RATE_LIMIT_DAILY": "Daily limit reached ({{limit}}s)",
   "error.RATE_LIMIT_GLOBAL_DAILY": "Server daily limit reached, please try again tomorrow",
   "error.AUDIO_TOO_LONG": "Audio too long (max {{max}}s)",
+  "update.available": "New version available: v{{latest}} (current: v{{current}})",
+  "update.download": "Download",
+
   "error.micPermissionDenied": "Microphone permission denied",
   "error.transcribeFailed": "Recognition failed, please try again"
 }

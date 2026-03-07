@@ -36,6 +36,9 @@
   "error.RATE_LIMIT_DAILY": "一日の上限に達しました（{{limit}}秒）",
   "error.RATE_LIMIT_GLOBAL_DAILY": "サーバーの一日の上限に達しました。明日もう一度お試しください",
   "error.AUDIO_TOO_LONG": "音声が長すぎます（最大{{max}}秒）",
+  "update.available": "新バージョンがあります：v{{latest}}（現在：v{{current}}）",
+  "update.download": "ダウンロード",
+
   "error.micPermissionDenied": "マイクの使用が拒否されました",
   "error.transcribeFailed": "認識に失敗しました。もう一度お試しください"
 }

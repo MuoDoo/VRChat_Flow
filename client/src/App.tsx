@@ -7,6 +7,8 @@ import MicControl from "./components/MicControl";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
 import LanguageSwitcher from "./components/LanguageSwitcher";
+import UpdateBanner from "./components/UpdateBanner";
+import { useUpdateCheck } from "./hooks/useUpdateCheck";
 
 interface TranslationEntry {
   id: number;
@@ -18,6 +20,7 @@ interface TranslationEntry {
 export default function App() {
   const { t } = useTranslation();
   const { isLoggedIn, username, getAccessToken, login, register, logout } = useAuth();
+  const updateInfo = useUpdateCheck();
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -77,6 +80,7 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <div style={styles.container}>
+        {updateInfo && <UpdateBanner {...updateInfo} />}
         <div style={styles.preAuthHeader}>
           <LanguageSwitcher />
           <button onClick={() => setShowSettings(!showSettings)} style={styles.settingsBtn}>
@@ -101,6 +105,7 @@ export default function App() {
 
   return (
     <div style={styles.container}>
+      {updateInfo && <UpdateBanner {...updateInfo} />}
       <header style={styles.header}>
         <h1 style={styles.title}>{t("app.title")}</h1>
         <div style={styles.headerRight}>
