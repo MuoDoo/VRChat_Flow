@@ -14,6 +14,7 @@ from auth import (
 )
 from config import settings
 from database import get_db
+from ratelimit import get_app_setting
 
 router = APIRouter()
 
@@ -68,11 +69,14 @@ async def register(
         )
 
     pw_hash = hash_password(body.password)
+    auto_activate = int(await get_app_setting("auto_activate_users", 0, db))
     await db.execute(
-        "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-        (body.username, pw_hash),
+        "INSERT INTO users (username, password_hash, is_active) VALUES (?, ?, ?)",
+        (body.username, pw_hash, auto_activate),
     )
     await db.commit()
+    if auto_activate:
+        return {"code": "REGISTER_SUCCESS"}
     return {"code": "REGISTER_SUCCESS_PENDING"}
 
 

@@ -105,7 +105,7 @@ export function useAuth() {
       if (!res.ok) {
         return data?.detail?.code || data?.code || "AUTH_USERNAME_TAKEN";
       }
-      return "REGISTER_SUCCESS_PENDING";
+      return data?.code || "REGISTER_SUCCESS_PENDING";
     },
     [serverUrl]
   );

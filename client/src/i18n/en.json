@@ -9,6 +9,7 @@
   "auth.switchToRegister": "Don't have an account? Sign up",
   "auth.switchToLogin": "Already have an account? Log in",
   "auth.registerSuccessPending": "Registration successful. Please wait for admin approval.",
+  "auth.registerSuccess": "Registration successful. You can now log in.",
   "auth.usernameRule": "3-20 characters, letters, numbers, underscore",
   "auth.passwordRule": "At least 8 characters",
 
@@ -33,6 +34,7 @@
   "error.AUTH_USERNAME_TAKEN": "Username already taken",
   "error.AUTH_NOT_ADMIN": "Admin access required",
   "error.RATE_LIMIT_DAILY": "Daily limit reached ({{limit}}s)",
+  "error.RATE_LIMIT_GLOBAL_DAILY": "Server daily limit reached, please try again tomorrow",
   "error.AUDIO_TOO_LONG": "Audio too long (max {{max}}s)",
   "error.micPermissionDenied": "Microphone permission denied",
   "error.transcribeFailed": "Recognition failed, please try again"

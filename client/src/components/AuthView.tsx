@@ -29,6 +29,11 @@ export default function AuthView({ onLogin, onRegister }: AuthViewProps) {
           setIsRegister(false);
           setUsername("");
           setPassword("");
+        } else if (result === "REGISTER_SUCCESS") {
+          setSuccess(t("auth.registerSuccess"));
+          setIsRegister(false);
+          setUsername("");
+          setPassword("");
         } else if (result) {
           setError(t(`error.${result}`, result));
         }

@@ -7,15 +7,14 @@ import aiosqlite
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from auth import get_current_user
-from config import settings
 from dashscope_asr import transcribe_audio
 from database import get_db
-from ratelimit import RateLimiter
+from ratelimit import RateLimiter, get_app_setting
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-rate_limiter = RateLimiter(settings.max_user_daily_seconds)
+rate_limiter = RateLimiter()
 
 
 def _get_wav_duration(wav_data: bytes) -> float:
@@ -66,19 +65,21 @@ async def transcribe(
             },
         )
 
-    if duration > settings.max_audio_duration:
+    max_audio_duration = await get_app_setting("max_audio_duration", 30, db)
+    if duration > max_audio_duration:
         raise HTTPException(
             status_code=400,
             detail={
                 "type": "error",
                 "code": "AUDIO_TOO_LONG",
-                "params": {"max": settings.max_audio_duration},
+                "params": {"max": max_audio_duration},
             },
         )
 
     # 3. Rate limit check (deduct daily quota)
     error_code = await rate_limiter.check_and_consume(user["sub"], duration, db)
     if error_code:
+        max_user = await get_app_setting("max_user_daily_seconds", 7200, db)
         remaining = await rate_limiter.get_remaining(user["sub"], db)
         raise HTTPException(
             status_code=429,
@@ -86,8 +87,8 @@ async def transcribe(
                 "type": "error",
                 "code": error_code,
                 "params": {
-                    "limit": settings.max_user_daily_seconds,
-                    "used": settings.max_user_daily_seconds - remaining,
+                    "limit": max_user,
+                    "used": max_user - remaining,
                 },
             },
         )

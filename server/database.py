@@ -36,7 +36,33 @@ async def init_db() -> None:
             expires_at  TEXT    NOT NULL,
             created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS usage_history (
+            user_id   INTEGER NOT NULL REFERENCES users(id),
+            date      TEXT NOT NULL,
+            seconds   REAL NOT NULL DEFAULT 0.0,
+            PRIMARY KEY (user_id, date)
+        );
     """)
+
+    # Seed default app_settings if not present
+    defaults = {
+        "max_user_daily_seconds": str(settings.max_user_daily_seconds),
+        "max_global_daily_seconds": "36000",
+        "max_audio_duration": str(settings.max_audio_duration),
+        "auto_activate_users": "0",
+    }
+    for key, default_value in defaults.items():
+        await _db.execute(
+            "INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)",
+            (key, default_value),
+        )
+    await _db.commit()
 
     # Create admin account on first run
     cursor = await _db.execute(

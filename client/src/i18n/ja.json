@@ -9,6 +9,7 @@
   "auth.switchToRegister": "アカウントをお持ちでない方はこちら",
   "auth.switchToLogin": "アカウントをお持ちの方はこちら",
   "auth.registerSuccessPending": "登録完了。管理者の承認をお待ちください。",
+  "auth.registerSuccess": "登録完了。ログインできます。",
   "auth.usernameRule": "3〜20文字、英数字とアンダースコア",
   "auth.passwordRule": "8文字以上",
 
@@ -33,6 +34,7 @@
   "error.AUTH_USERNAME_TAKEN": "ユーザー名は既に使われています",
   "error.AUTH_NOT_ADMIN": "管理者権限が必要です",
   "error.RATE_LIMIT_DAILY": "一日の上限に達しました（{{limit}}秒）",
+  "error.RATE_LIMIT_GLOBAL_DAILY": "サーバーの一日の上限に達しました。明日もう一度お試しください",
   "error.AUDIO_TOO_LONG": "音声が長すぎます（最大{{max}}秒）",
   "error.micPermissionDenied": "マイクの使用が拒否されました",
   "error.transcribeFailed": "認識に失敗しました。もう一度お試しください"

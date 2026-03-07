@@ -9,6 +9,7 @@
   "auth.switchToRegister": "没有账号？注册",
   "auth.switchToLogin": "已有账号？登录",
   "auth.registerSuccessPending": "注册成功，请等待管理员审核。",
+  "auth.registerSuccess": "注册成功，现在可以登录了。",
   "auth.usernameRule": "3-20个字符，字母、数字、下划线",
   "auth.passwordRule": "至少8个字符",
 
@@ -33,6 +34,7 @@
   "error.AUTH_USERNAME_TAKEN": "用户名已被占用",
   "error.AUTH_NOT_ADMIN": "需要管理员权限",
   "error.RATE_LIMIT_DAILY": "已达每日上限（{{limit}}秒）",
+  "error.RATE_LIMIT_GLOBAL_DAILY": "服务器每日总量已达上限，请明天再试",
   "error.AUDIO_TOO_LONG": "音频过长（最大{{max}}秒）",
   "error.micPermissionDenied": "麦克风权限被拒绝",
   "error.transcribeFailed": "识别失败，请重试"
