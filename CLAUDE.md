@@ -1,100 +1,121 @@
 # VRCFlow
 
-实时语音翻译桌面应用。麦克风采集 → VAD 切片 → HTTP 上传 → ASR/翻译 → VRChat OSC Chatbox。
+Real-time voice translation desktop app. Mic capture → VAD slicing → HTTP upload → ASR/translation → VRChat OSC Chatbox.
 
-## 架构
+## Architecture
 
 ```
-Electron 客户端 (client/)            Python 后端 (server/)
+Electron Client (client/)            Python Backend (server/)
 ┌───────────────────────────┐       ┌──────────────────────────┐
-│ 渲染进程 (React+Vite)      │       │ FastAPI + uvicorn        │
-│  - 麦克风采集               │       │  - 用户注册/登录 (JWT)    │
-│  - Silero VAD 语音切片     │ HTTP  │  - 管理员审核激活         │
-│  - WAV 编码 + POST 上传   │──────►│  - 每日音频秒数限流       │
-│  - 展示识别+翻译结果       │◄──────│  - DashScope SDK 调用     │
-│  - 登录/注册界面           │  JSON │  - SQLite 持久化          │
-├───────────────────────────┤       └──────────┬───────────────┘
-│ 主进程 (Node.js)           │                  │ SDK
-│  - OSC UDP → VRChat       │                  ▼
-│  - electron-store 设置     │       ┌──────────────────────────┐
-│  - IPC bridge             │       │ DashScope Translation     │
+│ Renderer (React+Vite)      │       │ FastAPI + uvicorn        │
+│  - Mic capture              │       │  - User register/login   │
+│  - Silero VAD slicing      │ HTTP  │  - Admin approval        │
+│  - WAV encode + POST       │──────►│  - Daily audio rate limit│
+│  - Display ASR+translation │◄──────│  - DashScope SDK calls   │
+│  - Login/register UI       │  JSON │  - SQLite persistence    │
+├───────────────────────────┤       │  - Embedded admin dashboard│
+│ Main process (Node.js)     │       └──────────┬───────────────┘
+│  - OSC UDP → VRChat       │                  │ SDK
+│  - electron-store settings │                  ▼
+│  - IPC bridge             │       ┌──────────────────────────┐
+│  - Update checker          │       │ DashScope Translation     │
 └───────────────────────────┘       │ (gummy-chat-v1)           │
                                     └──────────────────────────┘
 ```
 
-## 核心数据流
+## Core Data Flow
 
 ```
-麦克风 → AudioWorklet (16kHz mono)
-      → Silero VAD 检测语音段
-      → 语音段结束时编码为 WAV (PCM int16, 16kHz)
-      → POST /transcribe (Authorization: Bearer <access_token>)
-      → 服务端：校验 JWT → 检查限流(音频秒数) → DashScope SDK 识别+翻译
-      → 返回 JSON {transcription, translation}
-      → 客户端展示 + OSC 发送到 VRChat
+Mic → AudioWorklet (16kHz mono)
+    → Silero VAD detects speech segments
+    → On segment end, encode to WAV (PCM int16, 16kHz)
+    → POST /transcribe (Authorization: Bearer <access_token>)
+    → Server: verify JWT → check rate limit (audio seconds) → DashScope SDK ASR+translation
+    → Return JSON {transcription, translation}
+    → Client display + OSC send to VRChat
 ```
 
-## 用户系统流程
+## User System Flow
 
 ```
-注册 → 账户待审核(is_active=false) → 管理员激活 → 登录获取 JWT → 使用服务
+Register → Pending approval (is_active=false) → Admin activates → Login with JWT → Use service
 ```
 
-## 目录约定
+## Directory Structure
 
 ```
 vrcflow/
-├── client/                       # Electron + Vite + React + TS
+├── .github/
+│   └── workflows/
+│       └── release.yml               # Push v* tag → auto build + GitHub Release
+├── client/                           # Electron + Vite + React + TS
 │   ├── electron/
-│   │   ├── main.ts
-│   │   ├── osc.ts                # OSC UDP 发送（纯 dgram，零依赖）
-│   │   └── preload.ts            # contextBridge IPC
+│   │   ├── main.ts                   # Electron main process entry
+│   │   ├── osc.ts                    # OSC UDP sender (pure dgram, zero deps)
+│   │   └── preload.ts                # contextBridge IPC
 │   ├── src/
-│   │   ├── App.tsx
+│   │   ├── App.tsx                   # Main UI + state management
 │   │   ├── i18n/
 │   │   │   ├── index.ts
 │   │   │   ├── en.json
 │   │   │   ├── zh-CN.json
 │   │   │   └── ja.json
 │   │   ├── components/
-│   │   │   ├── AuthView.tsx       # 登录/注册
-│   │   │   ├── MicControl.tsx     # VAD 状态 + 开始/停止
-│   │   │   ├── TranslationView.tsx
-│   │   │   ├── Settings.tsx
-│   │   │   └── LanguageSwitcher.tsx
+│   │   │   ├── AuthView.tsx          # Login/register
+│   │   │   ├── MicControl.tsx        # VAD status + start/stop
+│   │   │   ├── TranslationView.tsx   # ASR+translation results display
+│   │   │   ├── Settings.tsx          # Settings modal
+│   │   │   ├── UpdateBanner.tsx      # Version update notification banner
+│   │   │   └── LanguageSwitcher.tsx  # Language switcher
 │   │   ├── hooks/
-│   │   │   ├── useAuth.ts         # JWT 管理
-│   │   │   └── useVAD.ts          # Silero VAD + WAV 编码 + HTTP 上传
+│   │   │   ├── useAuth.ts            # JWT management
+│   │   │   └── useVAD.ts             # Silero VAD + WAV encoding + HTTP upload
 │   │   └── lib/
-│   │       └── wav.ts             # PCM → WAV 编码
-│   ├── electron-builder.yml
+│   │       └── wav.ts                # PCM → WAV encoding
+│   ├── electron-builder.yml          # Build config (Windows x64 NSIS)
 │   └── vite.config.ts
-└── server/
-    ├── main.py                   # FastAPI app + uvicorn + lifespan
-    ├── config.py                 # pydantic-settings
-    ├── database.py               # aiosqlite
-    ├── auth.py                   # JWT + bcrypt
-    ├── ratelimit.py              # 每日音频秒数限流
-    ├── dashscope_asr.py          # DashScope TranslationRecognizerChat
-    ├── routers/
-    │   ├── auth_router.py        # POST /auth/register, /auth/login, /auth/refresh, /auth/logout
-    │   ├── transcribe_router.py  # POST /transcribe（核心端点）
-    │   └── admin_router.py       # GET /admin/users, PATCH /admin/users/{id}
-    ├── .env.example
-    └── requirements.txt
+├── server/
+│   ├── main.py                       # FastAPI app + embedded admin dashboard HTML
+│   ├── config.py                     # pydantic-settings
+│   ├── database.py                   # aiosqlite
+│   ├── auth.py                       # JWT + bcrypt
+│   ├── ratelimit.py                  # Daily audio seconds rate limiter
+│   ├── dashscope_asr.py              # DashScope TranslationRecognizerChat
+│   ├── routers/
+│   │   ├── auth_router.py            # POST /auth/register, /auth/login, /auth/refresh, /auth/logout
+│   │   ├── transcribe_router.py      # POST /transcribe (core endpoint)
+│   │   └── admin_router.py           # Admin API (user mgmt, stats, settings, usage history)
+│   ├── .env.example
+│   └── requirements.txt
+├── Makefile                          # Dev convenience commands
+└── CLAUDE.md
 ```
 
-## 数据库 Schema (SQLite)
+## Dev Commands (Makefile)
+
+```bash
+make install          # Install all dependencies
+make dev              # Start backend (background) + client
+make server           # Run backend in foreground
+make server-start     # Run backend in background
+make server-stop      # Stop backend
+make server-status    # Check backend status
+make server-log       # View backend logs
+make client           # Start Electron client
+make clean            # Clean all build artifacts and dependencies
+```
+
+## Database Schema (SQLite)
 
 ```sql
 CREATE TABLE users (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     username        TEXT    UNIQUE NOT NULL,
     password_hash   TEXT    NOT NULL,
-    is_active       INTEGER NOT NULL DEFAULT 0,   -- 0=待审核, 1=已激活
+    is_active       INTEGER NOT NULL DEFAULT 0,   -- 0=pending, 1=activated
     is_admin        INTEGER NOT NULL DEFAULT 0,
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
-    daily_seconds   REAL    NOT NULL DEFAULT 0.0,  -- 当日已用音频秒数
+    daily_seconds   REAL    NOT NULL DEFAULT 0.0,  -- audio seconds used today
     last_reset_date TEXT    NOT NULL DEFAULT ''
 );
 
@@ -107,30 +128,31 @@ CREATE TABLE refresh_tokens (
 );
 ```
 
-## API 端点
+## API Endpoints
 
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| POST | /auth/register | 无 | 注册（待激活） |
-| POST | /auth/login | 无 | 登录，返回 access + refresh token |
-| POST | /auth/refresh | refresh_token | 换取新 access_token |
-| POST | /auth/logout | refresh_token | 撤销 refresh_token |
-| **POST** | **/transcribe** | **access_token** | **上传 WAV，返回识别+翻译结果** |
-| GET | /admin/users | admin JWT | 用户列表 |
-| PATCH | /admin/users/{id} | admin JWT | 激活/停用用户 |
-| GET | /health | 无 | 健康检查 |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /auth/register | None | Register (pending activation) |
+| POST | /auth/login | None | Login, returns access + refresh token |
+| POST | /auth/refresh | refresh_token | Exchange for new access_token |
+| POST | /auth/logout | refresh_token | Revoke refresh_token |
+| **POST** | **/transcribe** | **access_token** | **Upload WAV, returns ASR+translation** |
+| GET | /admin/users | admin JWT | User list |
+| PATCH | /admin/users/{id} | admin JWT | Activate/deactivate user |
+| GET | /admin | None (in-page login) | Admin dashboard HTML page |
+| GET | /health | None | Health check |
 
-### POST /transcribe 请求/响应
+### POST /transcribe Request/Response
 
 ```
-请求：
+Request:
   Content-Type: multipart/form-data
   Authorization: Bearer <access_token>
   file: audio.wav (16kHz mono PCM int16)
-  source_lang: "zh"          (可选，默认 "zh")
-  target_lang: "en"          (可选，默认 "en")
+  source_lang: "zh"          (optional, default "zh")
+  target_lang: "en"          (optional, default "en")
 
-成功响应 (200)：
+Success (200):
 {
   "transcription": "你好世界",
   "translation": "Hello World",
@@ -138,51 +160,53 @@ CREATE TABLE refresh_tokens (
   "remaining_seconds": 4877.7
 }
 
-限流响应 (429)：
+Rate limited (429):
 {"type":"error","code":"RATE_LIMIT_DAILY","params":{"limit":7200,"used":7200}}
 ```
 
-## JWT 设计
+## JWT Design
 
-| 项目 | 规格 |
+| Item | Spec |
 |------|------|
-| 算法 | HS256 |
-| access_token 有效期 | 15 分钟 |
-| refresh_token 有效期 | 7 天 |
+| Algorithm | HS256 |
+| access_token TTL | 15 minutes |
+| refresh_token TTL | 7 days |
 | access_token payload | `{"sub": user_id, "username": "...", "is_admin": false, "exp": ...}` |
-| refresh_token 存储 | DB 存 SHA256 hash，支持撤销 |
-| 密码哈希 | bcrypt (passlib) |
+| refresh_token storage | DB stores SHA256 hash, supports revocation |
+| Password hashing | bcrypt (passlib) |
 
-## 国际化 (i18n)
+## i18n
 
-| 项目 | 方案 |
-|------|------|
-| 框架 | react-i18next + i18next |
-| 默认/fallback 语言 | en |
-| 初始支持语言 | en, zh-CN, ja |
-| 翻译文件格式 | JSON, 扁平 key |
-| 语言检测 | electron-store 持久化 > navigator.language > en |
-| 后端错误本地化 | 后端只返回 error code + params，客户端渲染 |
+| Item | Approach |
+|------|----------|
+| Framework | react-i18next + i18next |
+| Default/fallback language | en |
+| Supported languages | en, zh-CN, ja |
+| Translation file format | JSON, flat keys |
+| Language detection | electron-store persisted > navigator.language > en |
+| Backend error localization | Backend returns error code + params only, client renders |
 
-## 后端环境变量
+## Backend Environment Variables
 
-| 变量 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| DASHSCOPE_API_KEY | ✅ | - | 百炼 API Key |
-| JWT_SECRET | ✅ | - | JWT 签名密钥 |
-| DATABASE_PATH | | ./vrcflow.db | SQLite 文件路径 |
-| MAX_USER_DAILY_SECONDS | | 7200 | 单用户每日音频秒数上限 |
-| ACCESS_TOKEN_EXPIRE_MINUTES | | 15 | access token 有效期 |
-| REFRESH_TOKEN_EXPIRE_DAYS | | 7 | refresh token 有效期 |
-| MAX_AUDIO_DURATION | | 30 | 单次上传最大音频秒数 |
-| PORT | | 8080 | uvicorn 监听端口 |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| DASHSCOPE_API_KEY | Yes | - | DashScope API Key |
+| JWT_SECRET | Yes | - | JWT signing secret |
+| DATABASE_PATH | | ./vrcflow.db | SQLite database path |
+| MAX_USER_DAILY_SECONDS | | 7200 | Per-user daily audio quota (seconds) |
+| ACCESS_TOKEN_EXPIRE_MINUTES | | 15 | Access token TTL |
+| REFRESH_TOKEN_EXPIRE_DAYS | | 7 | Refresh token TTL |
+| MAX_AUDIO_DURATION | | 30 | Max audio duration per upload (seconds) |
+| PORT | | 8080 | uvicorn listen port |
+| ADMIN_INIT_PASSWORD | | random | Admin password on first run |
 
-## 技术栈约束
+## Tech Stack
 
-- **客户端**: Electron + Vite + React 18 + TypeScript strict
-- **VAD**: @ricky0123/vad-web (Silero VAD, ONNX 浏览器推理)
+- **Client**: Electron 40 + Vite 7 + React 19 + TypeScript strict
+- **VAD**: @ricky0123/vad-web (Silero VAD, ONNX browser inference)
 - **i18n**: react-i18next + i18next
-- **后端**: Python 3.11+, FastAPI, uvicorn, dashscope SDK, pydantic-settings, aiosqlite, PyJWT, passlib[bcrypt]
-- **构建**: electron-builder, 目标 Windows x64 NSIS
-- **OSC**: 纯 dgram 手动编码，不引入 osc 库
-- **UI 风格**: 深色系，紧凑布局
+- **Backend**: Python 3.11+, FastAPI, uvicorn, dashscope SDK, pydantic-settings, aiosqlite, PyJWT, passlib[bcrypt]
+- **Build**: electron-builder, target Windows x64 NSIS
+- **CI/CD**: GitHub Actions — push `v*` tag to auto-build and create Release
+- **OSC**: Pure dgram manual encoding, no osc library
+- **UI Style**: Dark theme (#1a1a2e), compact layout
