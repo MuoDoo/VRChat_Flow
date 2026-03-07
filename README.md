@@ -1,115 +1,117 @@
 # VRCFlow
 
-实时语音翻译桌面应用，专为 VRChat 设计。
+Real-time voice translation desktop app built for VRChat.
 
-麦克风采集语音 → 本地 VAD 智能切片 → 云端 ASR 识别 + 翻译 → 结果通过 OSC 发送到 VRChat Chatbox。
+Mic capture → on-device VAD slicing → cloud ASR + translation → results sent to VRChat Chatbox via OSC.
 
-## 功能特性
+[简体中文](./README.zh-CN.md)
 
-- **实时语音翻译** — 说话即翻译，延迟低，体验流畅
-- **本地 VAD 检测** — 基于 Silero VAD (ONNX)，在浏览器端完成语音活动检测，仅上传有效语音片段
-- **VRChat OSC 集成** — 翻译结果自动推送到 VRChat Chatbox，无需手动输入
-- **多语言 UI** — 界面支持 English / 中文 / 日本語
-- **用户管理** — 注册审核制，JWT 鉴权，管理员仪表盘
-- **用量限流** — 单用户每日音频时长限额，防止滥用
-- **自动更新检查** — 启动时检测新版本并提醒
+## Features
 
-## 快速开始
+- **Real-time Voice Translation** — speak and get instant translations with low latency
+- **On-device VAD** — Silero VAD (ONNX) runs locally in the browser, only uploading valid speech segments
+- **VRChat OSC Integration** — translation results are automatically pushed to VRChat Chatbox
+- **Multi-language UI** — English / 中文 / 日本語
+- **User Management** — registration with admin approval, JWT authentication, admin dashboard
+- **Rate Limiting** — per-user daily audio quota to prevent abuse
+- **Update Checker** — notifies users when a new version is available
 
-### 前置要求
+## Quick Start
+
+### Prerequisites
 
 - Node.js 20+
 - Python 3.11+
-- [阿里云百炼 DashScope API Key](https://dashscope.console.aliyun.com/)
+- [Alibaba DashScope API Key](https://dashscope.console.aliyun.com/)
 
-### 一键安装
+### Install
 
 ```bash
 make install
 ```
 
-### 配置后端
+### Configure
 
 ```bash
 cp server/.env.example server/.env
 ```
 
-编辑 `server/.env`，填入必要配置：
+Edit `server/.env` with your credentials:
 
 ```env
 DASHSCOPE_API_KEY=your_dashscope_api_key
 JWT_SECRET=your_jwt_secret
 ```
 
-### 启动开发环境
+### Development
 
 ```bash
-# 同时启动后端(后台)和客户端
+# Start both backend (background) and client
 make dev
 
-# 或分别启动
-make server    # 前台启动后端
-make client    # 启动 Electron 客户端
+# Or start separately
+make server    # Run backend in foreground
+make client    # Run Electron client
 ```
 
-### 构建发布包
+### Build
 
 ```bash
 cd client && npm run build
 ```
 
-产出 Windows x64 NSIS 安装包，位于 `client/release/`。
+Produces a Windows x64 NSIS installer in `client/release/`.
 
-## 项目结构
+## Project Structure
 
 ```
 vrcflow/
 ├── client/                  # Electron + Vite + React + TypeScript
-│   ├── electron/            # 主进程 (OSC 发送、IPC bridge)
-│   ├── src/                 # 渲染进程 (React UI、VAD、Auth)
-│   └── electron-builder.yml # 构建配置
-├── server/                  # Python FastAPI 后端
-│   ├── main.py              # 应用入口 + 内嵌管理仪表盘
-│   ├── routers/             # API 路由 (auth, transcribe, admin)
-│   └── .env.example         # 环境变量模板
-└── Makefile                 # 开发便捷命令
+│   ├── electron/            # Main process (OSC sender, IPC bridge)
+│   ├── src/                 # Renderer process (React UI, VAD, Auth)
+│   └── electron-builder.yml # Build config
+├── server/                  # Python FastAPI backend
+│   ├── main.py              # App entry + embedded admin dashboard
+│   ├── routers/             # API routes (auth, transcribe, admin)
+│   └── .env.example         # Environment variable template
+└── Makefile                 # Dev convenience commands
 ```
 
-## Makefile 命令
+## Makefile Commands
 
-| 命令 | 说明 |
-|------|------|
-| `make install` | 安装所有依赖 (server venv + client npm) |
-| `make dev` | 启动后端(后台) + 客户端 |
-| `make server` | 前台运行后端 |
-| `make server-start` | 后台运行后端 |
-| `make server-stop` | 停止后端 |
-| `make server-status` | 查看后端状态 |
-| `make server-log` | 查看后端日志 |
-| `make client` | 启动 Electron 客户端 |
-| `make clean` | 清理所有构建产物和依赖 |
+| Command | Description |
+|---------|-------------|
+| `make install` | Install all dependencies (server venv + client npm) |
+| `make dev` | Start backend (background) + client |
+| `make server` | Run backend in foreground |
+| `make server-start` | Run backend in background |
+| `make server-stop` | Stop backend |
+| `make server-status` | Check backend status |
+| `make server-log` | View backend logs |
+| `make client` | Start Electron client |
+| `make clean` | Clean all build artifacts and dependencies |
 
-## 后端环境变量
+## Environment Variables
 
-| 变量 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| `DASHSCOPE_API_KEY` | 是 | - | 百炼 API Key |
-| `JWT_SECRET` | 是 | - | JWT 签名密钥 |
-| `DATABASE_PATH` | | `./vrcflow.db` | SQLite 文件路径 |
-| `MAX_USER_DAILY_SECONDS` | | `7200` | 单用户每日音频秒数上限 |
-| `MAX_AUDIO_DURATION` | | `30` | 单次上传最大音频秒数 |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | | `15` | access token 有效期 |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | | `7` | refresh token 有效期 |
-| `PORT` | | `8080` | 服务端口 |
-| `ADMIN_INIT_PASSWORD` | | 随机生成 | 首次启动时管理员密码 |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DASHSCOPE_API_KEY` | Yes | - | DashScope API Key |
+| `JWT_SECRET` | Yes | - | JWT signing secret |
+| `DATABASE_PATH` | | `./vrcflow.db` | SQLite database path |
+| `MAX_USER_DAILY_SECONDS` | | `7200` | Per-user daily audio quota (seconds) |
+| `MAX_AUDIO_DURATION` | | `30` | Max audio duration per upload (seconds) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | | `15` | Access token TTL |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | | `7` | Refresh token TTL |
+| `PORT` | | `8080` | Server port |
+| `ADMIN_INIT_PASSWORD` | | random | Admin password on first run |
 
-## 技术栈
+## Tech Stack
 
-**客户端**: Electron 40 · Vite 7 · React 19 · TypeScript · @ricky0123/vad-web (Silero VAD)
+**Client**: Electron 40 · Vite 7 · React 19 · TypeScript · @ricky0123/vad-web (Silero VAD)
 
-**后端**: Python 3.11+ · FastAPI · uvicorn · DashScope SDK · aiosqlite · PyJWT · passlib[bcrypt]
+**Server**: Python 3.11+ · FastAPI · uvicorn · DashScope SDK · aiosqlite · PyJWT · passlib[bcrypt]
 
-**CI/CD**: GitHub Actions — 推送 `v*` tag 自动构建 Windows 安装包并创建 Release
+**CI/CD**: GitHub Actions — push a `v*` tag to auto-build Windows installer and create a Release
 
 ## License
 
