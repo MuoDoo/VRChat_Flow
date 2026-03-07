@@ -143,8 +143,8 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
   const vad = useMicVAD({
     startOnLoad: false,
     model: "legacy",
-    baseAssetPath: "/",
-    onnxWASMBasePath: "/",
+    baseAssetPath: "./",
+    onnxWASMBasePath: "./",
     positiveSpeechThreshold: 0.5,
     minSpeechMs: 150,
     preSpeechPadMs: 300,
