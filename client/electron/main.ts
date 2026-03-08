@@ -17,6 +17,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+    autoHideMenuBar: true,
     backgroundColor: "#1a1a2e",
     title: "VRCFlow",
   });
