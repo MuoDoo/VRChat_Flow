@@ -1,10 +1,18 @@
 # VRCFlow
 
+[简体中文](./README.zh-CN.md) | [日本語](./README_ja.md) | English
+
 Real-time voice translation desktop app built for VRChat.
 
 Mic capture → on-device VAD slicing → cloud ASR + translation → results sent to VRChat Chatbox via OSC.
 
-[简体中文](./README.zh-CN.md)
+## User Guide
+
+**Just want to use VRCFlow?** See the [User Guide](docs/USER_GUIDE.md) ([中文](docs/USER_GUIDE_zh-CN.md) | [日本語](docs/USER_GUIDE_ja.md)) for download, install, and usage instructions.
+
+The rest of this README is for developers.
+
+---
 
 ## Features
 
@@ -12,7 +20,7 @@ Mic capture → on-device VAD slicing → cloud ASR + translation → results se
 - **On-device VAD** — Silero VAD (ONNX) runs locally in the browser, only uploading valid speech segments
 - **VRChat OSC Integration** — translation results are automatically pushed to VRChat Chatbox
 - **Multi-language UI** — English / 中文 / 日本語
-- **User Management** — registration with admin approval, JWT authentication, admin dashboard
+- **User Management** — registration, JWT authentication, admin dashboard
 - **Rate Limiting** — per-user daily audio quota to prevent abuse
 - **Update Checker** — notifies users when a new version is available
 
@@ -62,6 +70,58 @@ cd client && npm run build
 
 Produces a Windows x64 NSIS installer in `client/release/`.
 
+## Windows Development Setup
+
+### Requirements
+
+- Windows 10/11 (x64)
+- Node.js 20+ ([download](https://nodejs.org/))
+- Python 3.11+ ([download](https://www.python.org/downloads/), check "Add to PATH" during installation)
+- Git ([download](https://git-scm.com/download/win))
+
+### Step-by-step
+
+1. **Open PowerShell** (or Command Prompt)
+
+2. **Clone and enter the project**
+   ```powershell
+   git clone https://github.com/MuoDoo/VRChat_Flow.git
+   cd VRChat_Flow
+   ```
+
+3. **Set up the server**
+   ```powershell
+   cd server
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   copy .env.example .env
+   ```
+   Edit `server\.env` with Notepad and fill in `DASHSCOPE_API_KEY` and `JWT_SECRET`.
+
+4. **Start the server**
+   ```powershell
+   cd server
+   .venv\Scripts\activate
+   python main.py
+   ```
+
+5. **Set up and start the client** (open a new terminal)
+   ```powershell
+   cd client
+   npm install
+   npm run dev
+   ```
+
+### Troubleshooting (Windows)
+
+| Issue | Solution |
+|-------|----------|
+| `python` not found | Reinstall Python with "Add to PATH" checked, or use `py` instead |
+| Port 8080 in use | Set `PORT=8081` in `.env`, update Server URL in client settings |
+| Microphone not working | Check Windows Settings → Privacy → Microphone, allow app access |
+| OSC not working | Confirm VRChat OSC is enabled, default port is 9000 |
+
 ## Project Structure
 
 ```
@@ -74,6 +134,7 @@ vrcflow/
 │   ├── main.py              # App entry + embedded admin dashboard
 │   ├── routers/             # API routes (auth, transcribe, admin)
 │   └── .env.example         # Environment variable template
+├── docs/                    # User guides (EN, ZH, JA)
 └── Makefile                 # Dev convenience commands
 ```
 
