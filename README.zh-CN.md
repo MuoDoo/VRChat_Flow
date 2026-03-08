@@ -1,10 +1,18 @@
 # VRCFlow
 
+[English](./README.md) | [日本語](./README_ja.md) | 中文
+
 实时语音翻译桌面应用，专为 VRChat 设计。
 
 麦克风采集语音 → 本地 VAD 智能切片 → 云端 ASR 识别 + 翻译 → 结果通过 OSC 发送到 VRChat Chatbox。
 
-[English](./README.md)
+## 使用指南
+
+**只想使用 VRCFlow？** 请参阅 [使用指南](docs/USER_GUIDE_zh-CN.md)（[English](docs/USER_GUIDE.md) | [日本語](docs/USER_GUIDE_ja.md)），包含下载安装和使用说明。
+
+以下内容面向开发者。
+
+---
 
 ## 功能特性
 
@@ -62,6 +70,58 @@ cd client && npm run build
 
 产出 Windows x64 NSIS 安装包，位于 `client/release/`。
 
+## Windows 开发环境搭建
+
+### 环境要求
+
+- Windows 10/11（x64）
+- Node.js 20+（[下载](https://nodejs.org/)）
+- Python 3.11+（[下载](https://www.python.org/downloads/)，安装时勾选 "Add to PATH"）
+- Git（[下载](https://git-scm.com/download/win)）
+
+### 详细步骤
+
+1. **打开 PowerShell**（或命令提示符）
+
+2. **克隆并进入项目目录**
+   ```powershell
+   git clone https://github.com/MuoDoo/VRChat_Flow.git
+   cd VRChat_Flow
+   ```
+
+3. **配置后端**
+   ```powershell
+   cd server
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   copy .env.example .env
+   ```
+   用记事本编辑 `server\.env`，填入 `DASHSCOPE_API_KEY` 和 `JWT_SECRET`。
+
+4. **启动后端**
+   ```powershell
+   cd server
+   .venv\Scripts\activate
+   python main.py
+   ```
+
+5. **配置并启动客户端**（打开新终端窗口）
+   ```powershell
+   cd client
+   npm install
+   npm run dev
+   ```
+
+### 常见问题（Windows）
+
+| 问题 | 解决方案 |
+|------|----------|
+| 找不到 `python` 命令 | 重新安装 Python 并勾选 "Add to PATH"，或使用 `py` 命令代替 |
+| 端口 8080 被占用 | 在 `.env` 中设置 `PORT=8081`，并在客户端设置中更新服务器地址 |
+| 麦克风无法使用 | 检查 Windows 设置 → 隐私 → 麦克风，允许应用访问 |
+| OSC 不生效 | 确认 VRChat 中已启用 OSC，默认端口为 9000 |
+
 ## 项目结构
 
 ```
@@ -74,6 +134,7 @@ vrcflow/
 │   ├── main.py              # 应用入口 + 内嵌管理仪表盘
 │   ├── routers/             # API 路由 (auth, transcribe, admin)
 │   └── .env.example         # 环境变量模板
+├── docs/                    # 用户使用指南 (EN, ZH, JA)
 └── Makefile                 # 开发便捷命令
 ```
 
