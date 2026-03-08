@@ -11,6 +11,7 @@ interface UseVADOptions {
     transcription: string;
     translation: string;
     remaining: number;
+    audioDuration: number;
   }) => void;
   onError: (error: string) => void;
 }
@@ -93,6 +94,7 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
         transcription: data.transcription,
         translation: data.translation,
         remaining: data.remaining_seconds,
+        audioDuration: data.audio_duration,
       });
       return;
     }
@@ -108,6 +110,7 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
       transcription: data.transcription,
       translation: data.translation,
       remaining: data.remaining_seconds,
+      audioDuration: data.audio_duration,
     });
   }, []);
 

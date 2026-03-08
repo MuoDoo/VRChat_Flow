@@ -16,6 +16,7 @@ interface TranslationEntry {
   transcription: string;
   translation: string;
   timestamp: Date;
+  audioDuration: number;
 }
 
 export default function App() {
@@ -62,7 +63,7 @@ export default function App() {
   }, [isLoggedIn, serverUrl, getAccessToken]);
 
   const handleResult = useCallback(
-    (data: { transcription: string; translation: string; remaining: number }) => {
+    (data: { transcription: string; translation: string; remaining: number; audioDuration: number }) => {
       const id = ++entryIdRef.current;
       setEntries((prev) => [
         ...prev,
@@ -71,6 +72,7 @@ export default function App() {
           transcription: data.transcription,
           translation: data.translation,
           timestamp: new Date(),
+          audioDuration: data.audioDuration,
         },
       ]);
       setRemaining(data.remaining);
