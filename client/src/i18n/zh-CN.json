@@ -27,6 +27,9 @@
   "settings.targetLang": "目标语言",
 
   "usage.remaining": "今日剩余 {{seconds}} 秒",
+  "usage.quota": "今日配额",
+  "usage.used": "已用",
+  "usage.resetsIn": "{{time}} 后刷新",
 
   "error.AUTH_INVALID_TOKEN": "登录已过期，请重新登录",
   "error.AUTH_ACCOUNT_INACTIVE": "账号尚未激活",

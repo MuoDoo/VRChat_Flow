@@ -27,6 +27,9 @@
   "settings.targetLang": "Target Language",
 
   "usage.remaining": "{{seconds}}s remaining today",
+  "usage.quota": "Today's Quota",
+  "usage.used": "Used",
+  "usage.resetsIn": "Resets in {{time}}",
 
   "error.AUTH_INVALID_TOKEN": "Session expired, please log in again",
   "error.AUTH_ACCOUNT_INACTIVE": "Account not yet activated",

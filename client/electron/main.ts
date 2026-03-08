@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
 import { sendChatbox } from "./osc";
 
@@ -33,6 +33,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle("osc:send", (_event, message: string, port: number) => {
     sendChatbox(message, port);
+  });
+
+  ipcMain.handle("shell:openExternal", (_event, url: string) => {
+    shell.openExternal(url);
   });
 
   app.on("activate", () => {

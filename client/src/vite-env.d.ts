@@ -4,6 +4,7 @@ export {};
 
 interface ElectronAPI {
   sendOsc: (message: string, port: number) => Promise<void>;
+  openExternal: (url: string) => Promise<void>;
 }
 
 declare global {

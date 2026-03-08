@@ -27,6 +27,19 @@ def _get_wav_duration(wav_data: bytes) -> float:
         return frames / rate
 
 
+@router.get("/usage")
+async def get_usage(
+    user: dict = Depends(get_current_user),
+    db: aiosqlite.Connection = Depends(get_db),
+) -> dict:
+    remaining = await rate_limiter.get_remaining(user["sub"], db)
+    daily_limit = await get_app_setting("max_user_daily_seconds", 7200, db)
+    return {
+        "remaining_seconds": round(remaining, 1),
+        "daily_limit": round(daily_limit, 1),
+    }
+
+
 @router.post("/transcribe")
 async def transcribe(
     file: UploadFile = File(...),
