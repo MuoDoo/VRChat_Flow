@@ -10,6 +10,7 @@ interface MicControlProps {
     transcription: string;
     translation: string;
     remaining: number;
+    audioDuration: number;
   }) => void;
   onError: (error: string) => void;
 }
