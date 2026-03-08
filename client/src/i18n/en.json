@@ -16,6 +16,8 @@
   "settings.language": "Language",
   "settings.sourceLang": "Source Language",
   "settings.targetLang": "Target Language",
+  "settings.overlay": "SteamVR Overlay",
+  "settings.overlayDesc": "Show translations in VR",
 
   "update.available": "New version available: v{{latest}} (current: v{{current}})",
   "update.download": "Download",
@@ -50,6 +52,13 @@
   "history.noData": "No history yet",
   "history.entriesUnit": "entries",
 
+  "speaker.start": "Speaker",
+  "speaker.stop": "Stop Speaker",
+  "speaker.status.listening": "Capturing speaker...",
+  "speaker.status.processing": "Processing speaker...",
+  "speaker.status.idle": "Speaker off",
+
+  "label.speaker": "Speaker",
   "label.noise": "Noise",
 
   "error.API_KEY_REQUIRED": "API Key not set",

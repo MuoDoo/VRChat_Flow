@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import MicControl from "./components/MicControl";
+import SpeakerControl from "./components/SpeakerControl";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
 import Help from "./components/Help";
@@ -9,6 +10,7 @@ import History from "./components/History";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import UpdateBanner from "./components/UpdateBanner";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
+import { renderOverlayText } from "./lib/overlayRenderer";
 
 const HISTORY_KEY = "vrcflow-history";
 
@@ -18,6 +20,7 @@ interface TranslationEntry {
   translation: string;
   timestamp: Date;
   audioDuration: number;
+  source: "mic" | "speaker";
 }
 
 function appendHistory(entry: {
@@ -59,10 +62,17 @@ export default function App() {
   const [targetLang, setTargetLang] = useState(() =>
     localStorage.getItem("vrcflow-targetLang") || "en"
   );
+  const [overlayEnabled, setOverlayEnabled] = useState(() =>
+    localStorage.getItem("vrcflow-overlayEnabled") === "true"
+  );
+  const overlayInitRef = useRef(false);
   const entryIdRef = useRef(0);
 
-  const handleResult = useCallback(
-    (data: { transcription: string; translation: string; audioDuration: number }) => {
+  const addEntry = useCallback(
+    (
+      data: { transcription: string; translation: string; audioDuration: number },
+      source: "mic" | "speaker"
+    ) => {
       const id = ++entryIdRef.current;
       const now = new Date();
       const isNoise = !data.transcription.trim() && !data.translation.trim();
@@ -75,10 +85,10 @@ export default function App() {
           translation: isNoise ? "" : data.translation,
           timestamp: now,
           audioDuration: data.audioDuration,
+          source,
         },
       ]);
 
-      // Persist to history
       appendHistory({
         id,
         transcription: data.transcription,
@@ -88,13 +98,63 @@ export default function App() {
         isNoise,
       });
 
-      // Only send to VRChat if it's actual speech
-      if (!isNoise) {
+      // Only send mic speech to VRChat OSC (not speaker translations)
+      if (!isNoise && source === "mic") {
         const oscText = `${data.transcription}\n${data.translation}`;
         window.electronAPI?.sendOsc(oscText, oscPort);
       }
     },
     [oscPort, t]
+  );
+
+  const handleResult = useCallback(
+    (data: { transcription: string; translation: string; audioDuration: number }) => {
+      addEntry(data, "mic");
+    },
+    [addEntry]
+  );
+
+  const sendToOverlay = useCallback(
+    async (transcription: string, translation: string) => {
+      if (!overlayEnabled || !window.electronAPI) return;
+
+      // Lazy-init overlay on first use
+      if (!overlayInitRef.current) {
+        const result = await window.electronAPI.overlayInit();
+        if (!result.ok) {
+          console.warn("Overlay init failed:", result.error);
+          return;
+        }
+        await window.electronAPI.overlayShow();
+        overlayInitRef.current = true;
+      }
+
+      const { buffer, width, height } = renderOverlayText(
+        transcription,
+        translation
+      );
+      await window.electronAPI.overlayUpdate(buffer, width, height);
+    },
+    [overlayEnabled]
+  );
+
+  const handleSpeakerResult = useCallback(
+    (data: { transcription: string; translation: string; audioDuration: number }) => {
+      addEntry(data, "speaker");
+      sendToOverlay(data.transcription, data.translation);
+    },
+    [addEntry, sendToOverlay]
+  );
+
+  const toggleOverlay = useCallback(
+    (enabled: boolean) => {
+      setOverlayEnabled(enabled);
+      localStorage.setItem("vrcflow-overlayEnabled", String(enabled));
+      if (!enabled && overlayInitRef.current) {
+        window.electronAPI?.overlayHide();
+      }
+    },
+    []
   );
 
   const handleError = useCallback((error: string) => {
@@ -171,7 +231,9 @@ export default function App() {
           oscPort={oscPort}
           sourceLang={sourceLang}
           targetLang={targetLang}
+          overlayEnabled={overlayEnabled}
           onSave={saveSettings}
+          onOverlayToggle={toggleOverlay}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -183,6 +245,14 @@ export default function App() {
         sourceLang={sourceLang}
         targetLang={targetLang}
         onResult={handleResult}
+        onError={handleError}
+      />
+
+      <SpeakerControl
+        apiKey={apiKey}
+        sourceLang={sourceLang}
+        targetLang={targetLang}
+        onResult={handleSpeakerResult}
         onError={handleError}
       />
     </div>

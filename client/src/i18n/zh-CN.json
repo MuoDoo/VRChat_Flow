@@ -16,6 +16,8 @@
   "settings.language": "语言",
   "settings.sourceLang": "源语言",
   "settings.targetLang": "目标语言",
+  "settings.overlay": "SteamVR 浮窗",
+  "settings.overlayDesc": "在 VR 中显示翻译",
 
   "update.available": "发现新版本：v{{latest}}（当前：v{{current}}）",
   "update.download": "前往下载",
@@ -50,6 +52,13 @@
   "history.noData": "暂无历史记录",
   "history.entriesUnit": "条",
 
+  "speaker.start": "扬声器",
+  "speaker.stop": "停止监听",
+  "speaker.status.listening": "正在捕获扬声器...",
+  "speaker.status.processing": "处理中...",
+  "speaker.status.idle": "扬声器关闭",
+
+  "label.speaker": "他人",
   "label.noise": "杂音",
 
   "error.API_KEY_REQUIRED": "未设置 API Key",

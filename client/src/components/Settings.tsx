@@ -6,7 +6,9 @@ interface SettingsProps {
   oscPort: number;
   sourceLang: string;
   targetLang: string;
+  overlayEnabled: boolean;
   onSave: (apiKey: string, port: number, src: string, tgt: string) => void;
+  onOverlayToggle: (enabled: boolean) => void;
   onClose: () => void;
 }
 
@@ -15,7 +17,9 @@ export default function Settings({
   oscPort: initPort,
   sourceLang: initSrc,
   targetLang: initTgt,
+  overlayEnabled,
   onSave,
+  onOverlayToggle,
   onClose,
 }: SettingsProps) {
   const { t } = useTranslation();
@@ -78,6 +82,24 @@ export default function Settings({
           <option value="ja">Japanese</option>
           <option value="ko">Korean</option>
         </select>
+
+        <div style={styles.separator} />
+
+        <label style={styles.label}>{t("settings.overlay")}</label>
+        <div style={styles.toggleRow}>
+          <span style={{ fontSize: "13px", color: "#ccc" }}>
+            {t("settings.overlayDesc")}
+          </span>
+          <button
+            onClick={() => onOverlayToggle(!overlayEnabled)}
+            style={{
+              ...styles.toggleBtn,
+              backgroundColor: overlayEnabled ? "#27ae60" : "#555",
+            }}
+          >
+            {overlayEnabled ? "ON" : "OFF"}
+          </button>
+        </div>
 
         <div style={styles.buttons}>
           <button onClick={handleSave} style={styles.saveBtn}>
@@ -164,5 +186,26 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#aaa",
     cursor: "pointer",
     fontSize: "16px",
+  },
+  separator: {
+    borderTop: "1px solid #333",
+    marginTop: "8px",
+    paddingTop: "4px",
+  },
+  toggleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+  },
+  toggleBtn: {
+    padding: "4px 12px",
+    borderRadius: "4px",
+    border: "none",
+    color: "#fff",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    minWidth: "40px",
   },
 };

@@ -16,6 +16,8 @@
   "settings.language": "言語",
   "settings.sourceLang": "ソース言語",
   "settings.targetLang": "ターゲット言語",
+  "settings.overlay": "SteamVR オーバーレイ",
+  "settings.overlayDesc": "VR内に翻訳を表示",
 
   "update.available": "新バージョンがあります：v{{latest}}（現在：v{{current}}）",
   "update.download": "ダウンロード",
@@ -50,6 +52,13 @@
   "history.noData": "履歴がありません",
   "history.entriesUnit": "件",
 
+  "speaker.start": "スピーカー",
+  "speaker.stop": "スピーカー停止",
+  "speaker.status.listening": "スピーカー録音中...",
+  "speaker.status.processing": "処理中...",
+  "speaker.status.idle": "スピーカーオフ",
+
+  "label.speaker": "他者",
   "label.noise": "ノイズ",
 
   "error.API_KEY_REQUIRED": "API Keyが未設定です",
