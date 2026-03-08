@@ -123,7 +123,7 @@ th{color:#888;font-weight:500}
 .usage-val{width:70px;font-size:12px;color:#888;flex-shrink:0}
 
 /* Chart */
-.chart-container{position:relative;width:100%;overflow-x:auto}
+.chart-container{position:relative;width:100%;overflow:visible}
 .chart{display:flex;align-items:flex-end;gap:3px;height:160px;padding-top:20px}
 .chart-col{display:flex;flex-direction:column;align-items:center;flex:1;min-width:20px}
 .chart-bar{width:100%;min-width:14px;max-width:40px;border-radius:3px 3px 0 0;transition:height .3s;cursor:default;position:relative}
@@ -214,7 +214,7 @@ th{color:#888;font-weight:500}
     <div class="section">
       <h2>Per-User History</h2>
       <table>
-        <thead><tr><th>Date</th><th>User</th><th>Seconds</th></tr></thead>
+        <thead><tr><th>Date</th><th>User</th><th>Duration</th></tr></thead>
         <tbody id="history-tbody"></tbody>
       </table>
     </div>
