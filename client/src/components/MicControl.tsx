@@ -5,6 +5,7 @@ interface MicControlProps {
   apiKey: string;
   sourceLang: string;
   targetLang: string;
+  volumeRef?: React.MutableRefObject<number>;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -17,6 +18,7 @@ export default function MicControl({
   apiKey,
   sourceLang,
   targetLang,
+  volumeRef,
   onResult,
   onError,
 }: MicControlProps) {
@@ -25,6 +27,7 @@ export default function MicControl({
     apiKey,
     sourceLang,
     targetLang,
+    volumeRef,
     onResult,
     onError,
   });

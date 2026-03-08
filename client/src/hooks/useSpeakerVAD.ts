@@ -1,11 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useMicVAD } from "@ricky0123/vad-react";
 import { encodeWAV } from "../lib/wav";
+import { startVolumeMonitor } from "../lib/volumeMonitor";
 
 interface UseSpeakerVADOptions {
   apiKey: string;
   sourceLang: string;
   targetLang: string;
+  volumeRef?: React.MutableRefObject<number>;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -23,7 +25,7 @@ interface UseSpeakerVADReturn {
   vadError: string | false;
 }
 
-async function getLoopbackStream(): Promise<MediaStream> {
+async function acquireLoopbackStream(): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getDisplayMedia({
     video: true,
     audio: true,
@@ -39,10 +41,14 @@ async function getLoopbackStream(): Promise<MediaStream> {
 export function useSpeakerVAD(
   options: UseSpeakerVADOptions
 ): UseSpeakerVADReturn {
-  const { apiKey, sourceLang, targetLang, onResult, onError } = options;
+  const { apiKey, sourceLang, targetLang, volumeRef, onResult, onError } =
+    options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
   const pendingRef = useRef<Float32Array | null>(null);
+  const volumeCleanupRef = useRef<(() => void) | null>(null);
+  const volumeRefStable = useRef(volumeRef);
+  volumeRefStable.current = volumeRef;
 
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
@@ -114,6 +120,19 @@ export function useSpeakerVAD(
     [uploadAudio]
   );
 
+  const getStreamWithMonitor = useCallback(async () => {
+    const stream = await acquireLoopbackStream();
+    // Set up volume monitoring
+    volumeCleanupRef.current?.();
+    if (volumeRefStable.current) {
+      volumeCleanupRef.current = startVolumeMonitor(
+        stream,
+        volumeRefStable.current
+      );
+    }
+    return stream;
+  }, []);
+
   const vad = useMicVAD({
     startOnLoad: false,
     model: "legacy",
@@ -123,8 +142,7 @@ export function useSpeakerVAD(
     minSpeechMs: 150,
     preSpeechPadMs: 300,
     redemptionMs: 250,
-    // Override stream source to capture system audio loopback
-    getStream: getLoopbackStream,
+    getStream: getStreamWithMonitor,
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },
@@ -146,8 +164,17 @@ export function useSpeakerVAD(
   }, [vad]);
 
   const stop = useCallback(async () => {
+    volumeCleanupRef.current?.();
+    volumeCleanupRef.current = null;
     await vad.pause();
   }, [vad]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      volumeCleanupRef.current?.();
+    };
+  }, []);
 
   return {
     start,

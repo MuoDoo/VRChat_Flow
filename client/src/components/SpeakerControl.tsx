@@ -5,6 +5,7 @@ interface SpeakerControlProps {
   apiKey: string;
   sourceLang: string;
   targetLang: string;
+  volumeRef?: React.MutableRefObject<number>;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -17,6 +18,7 @@ export default function SpeakerControl({
   apiKey,
   sourceLang,
   targetLang,
+  volumeRef,
   onResult,
   onError,
 }: SpeakerControlProps) {
@@ -27,6 +29,7 @@ export default function SpeakerControl({
       // Speaker capture translates others' speech — reverse the language pair
       sourceLang: targetLang,
       targetLang: sourceLang,
+      volumeRef,
       onResult,
       onError,
     });

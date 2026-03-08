@@ -18,6 +18,10 @@
   "settings.targetLang": "目标语言",
   "settings.overlay": "SteamVR 浮窗",
   "settings.overlayDesc": "在 VR 中显示翻译",
+  "settings.devices": "音频设备",
+  "settings.inputDevices": "输入",
+  "settings.outputDevices": "输出",
+  "settings.refreshDevices": "刷新",
 
   "update.available": "发现新版本：v{{latest}}（当前：v{{current}}）",
   "update.download": "前往下载",

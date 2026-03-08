@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import MicControl from "./components/MicControl";
 import SpeakerControl from "./components/SpeakerControl";
+import VolumeBars from "./components/VolumeBars";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
 import Help from "./components/Help";
@@ -66,6 +67,8 @@ export default function App() {
     localStorage.getItem("vrcflow-overlayEnabled") === "true"
   );
   const overlayInitRef = useRef(false);
+  const micVolumeRef = useRef(0);
+  const speakerVolumeRef = useRef(0);
   const entryIdRef = useRef(0);
 
   const addEntry = useCallback(
@@ -244,6 +247,7 @@ export default function App() {
         apiKey={apiKey}
         sourceLang={sourceLang}
         targetLang={targetLang}
+        volumeRef={micVolumeRef}
         onResult={handleResult}
         onError={handleError}
       />
@@ -252,8 +256,14 @@ export default function App() {
         apiKey={apiKey}
         sourceLang={sourceLang}
         targetLang={targetLang}
+        volumeRef={speakerVolumeRef}
         onResult={handleSpeakerResult}
         onError={handleError}
+      />
+
+      <VolumeBars
+        micVolumeRef={micVolumeRef}
+        speakerVolumeRef={speakerVolumeRef}
       />
     </div>
   );

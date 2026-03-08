@@ -18,6 +18,10 @@
   "settings.targetLang": "ターゲット言語",
   "settings.overlay": "SteamVR オーバーレイ",
   "settings.overlayDesc": "VR内に翻訳を表示",
+  "settings.devices": "オーディオデバイス",
+  "settings.inputDevices": "入力",
+  "settings.outputDevices": "出力",
+  "settings.refreshDevices": "更新",
 
   "update.available": "新バージョンがあります：v{{latest}}（現在：v{{current}}）",
   "update.download": "ダウンロード",

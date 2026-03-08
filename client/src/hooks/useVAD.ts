@@ -1,11 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useMicVAD } from "@ricky0123/vad-react";
 import { encodeWAV } from "../lib/wav";
+import { startVolumeMonitor } from "../lib/volumeMonitor";
 
 interface UseVADOptions {
   apiKey: string;
   sourceLang: string;
   targetLang: string;
+  volumeRef?: React.MutableRefObject<number>;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -24,10 +26,14 @@ interface UseVADReturn {
 }
 
 export function useVAD(options: UseVADOptions): UseVADReturn {
-  const { apiKey, sourceLang, targetLang, onResult, onError } = options;
+  const { apiKey, sourceLang, targetLang, volumeRef, onResult, onError } =
+    options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
   const pendingRef = useRef<Float32Array | null>(null);
+  const volumeCleanupRef = useRef<(() => void) | null>(null);
+  const volumeRefStable = useRef(volumeRef);
+  volumeRefStable.current = volumeRef;
 
   // Refs to keep latest callbacks without re-triggering VAD re-init
   const onResultRef = useRef(onResult);
@@ -70,34 +76,37 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     });
   }, []);
 
-  const processQueue = useCallback(async (audio: Float32Array) => {
-    if (inflightRef.current) {
-      // Keep only the latest pending segment, discard older ones
-      pendingRef.current = audio;
-      return;
-    }
+  const processQueue = useCallback(
+    async (audio: Float32Array) => {
+      if (inflightRef.current) {
+        // Keep only the latest pending segment, discard older ones
+        pendingRef.current = audio;
+        return;
+      }
 
-    inflightRef.current = true;
-    setIsProcessing(true);
+      inflightRef.current = true;
+      setIsProcessing(true);
 
-    try {
-      await uploadAudio(audio);
-    } catch (e) {
-      console.error("Transcribe error:", e);
-      onErrorRef.current("transcribeFailed");
-    }
+      try {
+        await uploadAudio(audio);
+      } catch (e) {
+        console.error("Transcribe error:", e);
+        onErrorRef.current("transcribeFailed");
+      }
 
-    inflightRef.current = false;
+      inflightRef.current = false;
 
-    // Process pending segment if any
-    const pending = pendingRef.current;
-    pendingRef.current = null;
-    if (pending) {
-      processQueue(pending);
-    } else {
-      setIsProcessing(false);
-    }
-  }, [uploadAudio]);
+      // Process pending segment if any
+      const pending = pendingRef.current;
+      pendingRef.current = null;
+      if (pending) {
+        processQueue(pending);
+      } else {
+        setIsProcessing(false);
+      }
+    },
+    [uploadAudio]
+  );
 
   const vad = useMicVAD({
     startOnLoad: false,
@@ -108,6 +117,20 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     minSpeechMs: 150,
     preSpeechPadMs: 300,
     redemptionMs: 250,
+    getStream: async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+      // Set up volume monitoring
+      volumeCleanupRef.current?.();
+      if (volumeRefStable.current) {
+        volumeCleanupRef.current = startVolumeMonitor(
+          stream,
+          volumeRefStable.current
+        );
+      }
+      return stream;
+    },
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },
@@ -129,8 +152,17 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
   }, [vad]);
 
   const stop = useCallback(async () => {
+    volumeCleanupRef.current?.();
+    volumeCleanupRef.current = null;
     await vad.pause();
   }, [vad]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      volumeCleanupRef.current?.();
+    };
+  }, []);
 
   return {
     start,

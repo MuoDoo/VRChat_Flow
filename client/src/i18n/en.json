@@ -18,6 +18,10 @@
   "settings.targetLang": "Target Language",
   "settings.overlay": "SteamVR Overlay",
   "settings.overlayDesc": "Show translations in VR",
+  "settings.devices": "Audio Devices",
+  "settings.inputDevices": "Input",
+  "settings.outputDevices": "Output",
+  "settings.refreshDevices": "Refresh",
 
   "update.available": "New version available: v{{latest}} (current: v{{current}})",
   "update.download": "Download",
