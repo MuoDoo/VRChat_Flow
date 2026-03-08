@@ -18,7 +18,14 @@ export default function UpdateBanner({ latestVersion, downloadUrl }: Props) {
       <span>
         {t("update.available", { current: APP_VERSION, latest: latestVersion })}
       </span>
-      <a href={downloadUrl} target="_blank" rel="noopener noreferrer" style={styles.link}>
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          window.electronAPI.openExternal(downloadUrl);
+        }}
+        style={styles.link}
+      >
         {t("update.download")}
       </a>
       <button onClick={() => setDismissed(true)} style={styles.dismiss}>
