@@ -20,7 +20,7 @@ The rest of this README is for developers.
 - **On-device VAD** — Silero VAD (ONNX) runs locally in the browser, only uploading valid speech segments
 - **VRChat OSC Integration** — translation results are automatically pushed to VRChat Chatbox
 - **Multi-language UI** — English / 中文 / 日本語
-- **User Management** — registration with admin approval, JWT authentication, admin dashboard
+- **User Management** — registration, JWT authentication, admin dashboard
 - **Rate Limiting** — per-user daily audio quota to prevent abuse
 - **Update Checker** — notifies users when a new version is available
 

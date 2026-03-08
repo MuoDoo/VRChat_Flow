@@ -22,13 +22,9 @@ When you open VRCFlow for the first time, you'll see the login screen.
 1. Click **"Don't have an account? Sign up"** at the bottom
 2. Enter a username (3–20 characters, letters/numbers/underscore) and password (8+ characters)
 3. Click **Sign up**
-4. You'll see: *"Registration successful. Please wait for admin approval."*
-
-Your account needs to be approved by an administrator before you can use it. Contact your server administrator and wait for activation.
+4. You'll see a success message — you can now log in
 
 ### 2. Log In
-
-Once your account is approved:
 
 1. Enter your username and password
 2. Click **Log in**
@@ -104,10 +100,6 @@ To see translations in VRChat's Chatbox:
 - **Windows**: Go to Settings → Privacy & Security → Microphone, make sure app access is enabled
 - Check that your microphone is set as the default recording device in Windows Sound Settings
 - Try closing other apps that might be using the microphone
-
-### "Account not yet activated"
-
-Your account hasn't been approved by the admin yet. Contact the server administrator.
 
 ### "Session expired, please log in again"
 
