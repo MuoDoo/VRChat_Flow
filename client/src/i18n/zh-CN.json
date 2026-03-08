@@ -25,6 +25,10 @@
   "settings.language": "语言",
   "settings.sourceLang": "源语言",
   "settings.targetLang": "目标语言",
+  "settings.backendDefault": "默认",
+  "settings.addCustomBackend": "添加自定义后端",
+  "settings.deleteBackend": "删除",
+  "settings.backendAdd": "添加",
 
   "usage.remaining": "今日剩余 {{seconds}} 秒",
   "usage.quota": "今日配额",

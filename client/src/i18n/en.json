@@ -25,6 +25,10 @@
   "settings.language": "Language",
   "settings.sourceLang": "Source Language",
   "settings.targetLang": "Target Language",
+  "settings.backendDefault": "Default",
+  "settings.addCustomBackend": "Add Custom Backend",
+  "settings.deleteBackend": "Delete",
+  "settings.backendAdd": "Add",
 
   "usage.remaining": "{{seconds}}s remaining today",
   "usage.quota": "Today's Quota",

@@ -25,6 +25,10 @@
   "settings.language": "言語",
   "settings.sourceLang": "ソース言語",
   "settings.targetLang": "ターゲット言語",
+  "settings.backendDefault": "デフォルト",
+  "settings.addCustomBackend": "カスタムバックエンドを追加",
+  "settings.deleteBackend": "削除",
+  "settings.backendAdd": "追加",
 
   "usage.remaining": "本日の残り {{seconds}} 秒",
   "usage.quota": "本日の割当",
