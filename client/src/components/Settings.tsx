@@ -27,14 +27,23 @@ export default function Settings({
   const [port, setPort] = useState(String(initPort));
   const [src, setSrc] = useState(initSrc);
   const [tgt, setTgt] = useState(initTgt);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [defaultInput, setDefaultInput] = useState("");
+  const [defaultOutput, setDefaultOutput] = useState("");
 
   const refreshDevices = async () => {
     try {
       const devs = await navigator.mediaDevices.enumerateDevices();
-      setDevices(devs);
+      const input = devs.find(
+        (d) => d.kind === "audioinput" && d.deviceId === "default"
+      );
+      const output = devs.find(
+        (d) => d.kind === "audiooutput" && d.deviceId === "default"
+      );
+      setDefaultInput(input?.label || devs.find((d) => d.kind === "audioinput")?.label || "--");
+      setDefaultOutput(output?.label || devs.find((d) => d.kind === "audiooutput")?.label || "--");
     } catch {
-      setDevices([]);
+      setDefaultInput("--");
+      setDefaultOutput("--");
     }
   };
 
@@ -46,9 +55,6 @@ export default function Settings({
     onSave(key.trim(), parseInt(port, 10) || 9000, src, tgt);
     onClose();
   };
-
-  const inputs = devices.filter((d) => d.kind === "audioinput");
-  const outputs = devices.filter((d) => d.kind === "audiooutput");
 
   return (
     <div style={styles.overlay}>
@@ -128,33 +134,14 @@ export default function Settings({
         </div>
 
         <div style={styles.deviceSection}>
-          <div style={styles.deviceKind}>{t("settings.inputDevices")}</div>
-          {inputs.length === 0 && (
-            <div style={styles.deviceItem}>--</div>
-          )}
-          {inputs.map((d, i) => (
-            <div key={d.deviceId || i} style={styles.deviceItem}>
-              {d.label || `Input ${i + 1}`}
-              {d.deviceId === "default" && (
-                <span style={styles.defaultBadge}>default</span>
-              )}
-            </div>
-          ))}
-
-          <div style={{ ...styles.deviceKind, marginTop: "6px" }}>
-            {t("settings.outputDevices")}
+          <div style={styles.deviceRow}>
+            <span style={styles.deviceKind}>{t("settings.inputDevices")}</span>
+            <span style={styles.deviceName}>{defaultInput}</span>
           </div>
-          {outputs.length === 0 && (
-            <div style={styles.deviceItem}>--</div>
-          )}
-          {outputs.map((d, i) => (
-            <div key={d.deviceId || i} style={styles.deviceItem}>
-              {d.label || `Output ${i + 1}`}
-              {d.deviceId === "default" && (
-                <span style={styles.defaultBadge}>default</span>
-              )}
-            </div>
-          ))}
+          <div style={styles.deviceRow}>
+            <span style={styles.deviceKind}>{t("settings.outputDevices")}</span>
+            <span style={styles.deviceName}>{defaultOutput}</span>
+          </div>
         </div>
 
         <div style={styles.buttons}>
@@ -286,27 +273,21 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 10px",
     fontSize: "12px",
   },
+  deviceRow: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: "8px",
+    padding: "3px 0",
+  },
   deviceKind: {
     fontSize: "11px",
     color: "#666",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    marginBottom: "3px",
-  },
-  deviceItem: {
-    color: "#bbb",
-    padding: "2px 0",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    wordBreak: "break-word",
-  },
-  defaultBadge: {
-    fontSize: "9px",
-    color: "#27ae60",
-    border: "1px solid #27ae60",
-    borderRadius: "2px",
-    padding: "0 3px",
     flexShrink: 0,
+    minWidth: "28px",
+  },
+  deviceName: {
+    fontSize: "12px",
+    color: "#bbb",
+    wordBreak: "break-word",
   },
 };
