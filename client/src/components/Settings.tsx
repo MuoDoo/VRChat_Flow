@@ -6,7 +6,6 @@ interface SettingsProps {
   oscPort: number;
   sourceLang: string;
   targetLang: string;
-  remaining: number | null;
   onSave: (url: string, port: number, src: string, tgt: string) => void;
   onClose: () => void;
 }
@@ -16,7 +15,6 @@ export default function Settings({
   oscPort: initPort,
   sourceLang: initSrc,
   targetLang: initTgt,
-  remaining,
   onSave,
   onClose,
 }: SettingsProps) {
@@ -66,12 +64,6 @@ export default function Settings({
           <option value="ja">Japanese</option>
           <option value="ko">Korean</option>
         </select>
-
-        {remaining !== null && (
-          <div style={styles.remaining}>
-            {t("usage.remaining", { seconds: Math.round(remaining) })}
-          </div>
-        )}
 
         <div style={styles.buttons}>
           <button onClick={handleSave} style={styles.saveBtn}>
@@ -126,12 +118,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#e0e0e0",
     fontSize: "13px",
     outline: "none",
-  },
-  remaining: {
-    fontSize: "13px",
-    color: "#51cf66",
-    textAlign: "center",
-    marginTop: "8px",
   },
   buttons: {
     display: "flex",

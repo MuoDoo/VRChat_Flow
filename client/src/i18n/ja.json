@@ -27,6 +27,9 @@
   "settings.targetLang": "ターゲット言語",
 
   "usage.remaining": "本日の残り {{seconds}} 秒",
+  "usage.quota": "本日の割当",
+  "usage.used": "使用済み",
+  "usage.resetsIn": "{{time}} 後にリセット",
 
   "error.AUTH_INVALID_TOKEN": "セッション切れです。再ログインしてください",
   "error.AUTH_ACCOUNT_INACTIVE": "アカウントが未承認です",
