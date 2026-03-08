@@ -2,33 +2,29 @@ import { useTranslation } from "react-i18next";
 import { useVAD } from "../hooks/useVAD";
 
 interface MicControlProps {
-  serverUrl: string;
+  apiKey: string;
   sourceLang: string;
   targetLang: string;
-  getAccessToken: () => Promise<string | null>;
   onResult: (data: {
     transcription: string;
     translation: string;
-    remaining: number;
     audioDuration: number;
   }) => void;
   onError: (error: string) => void;
 }
 
 export default function MicControl({
-  serverUrl,
+  apiKey,
   sourceLang,
   targetLang,
-  getAccessToken,
   onResult,
   onError,
 }: MicControlProps) {
   const { t } = useTranslation();
   const { start, stop, isListening, isProcessing, vadLoading, vadError } = useVAD({
-    serverUrl,
+    apiKey,
     sourceLang,
     targetLang,
-    getAccessToken,
     onResult,
     onError,
   });
@@ -43,7 +39,7 @@ export default function MicControl({
           ? t("mic.status.listening")
           : t("mic.status.idle");
 
-  const disabled = vadLoading || !!vadError;
+  const disabled = vadLoading || !!vadError || !apiKey;
 
   return (
     <div style={styles.container}>

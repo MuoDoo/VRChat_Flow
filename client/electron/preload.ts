@@ -5,4 +5,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("osc:send", message, port),
   openExternal: (url: string) =>
     ipcRenderer.invoke("shell:openExternal", url),
+  transcribe: (
+    wavBuffer: ArrayBuffer,
+    apiKey: string,
+    sourceLang: string,
+    targetLang: string
+  ) => ipcRenderer.invoke("transcribe", wavBuffer, apiKey, sourceLang, targetLang),
 });

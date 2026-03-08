@@ -1,15 +1,16 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "./hooks/useAuth";
-import { DEFAULT_SERVER_URL } from "./constants";
-import AuthView from "./components/AuthView";
 import MicControl from "./components/MicControl";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
-import StatusBar from "./components/StatusBar";
+import Help from "./components/Help";
+import Dashboard from "./components/Dashboard";
+import History from "./components/History";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import UpdateBanner from "./components/UpdateBanner";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
+
+const HISTORY_KEY = "vrcflow-history";
 
 interface TranslationEntry {
   id: number;
@@ -19,16 +20,35 @@ interface TranslationEntry {
   audioDuration: number;
 }
 
+function appendHistory(entry: {
+  id: number;
+  transcription: string;
+  translation: string;
+  timestamp: string;
+  audioDuration: number;
+  isNoise: boolean;
+}) {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const history = raw ? JSON.parse(raw) : [];
+    history.push(entry);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch {
+    // storage full or corrupt, start fresh
+    localStorage.setItem(HISTORY_KEY, JSON.stringify([entry]));
+  }
+}
+
 export default function App() {
   const { t } = useTranslation();
-  const { isLoggedIn, username, getAccessToken, login, register, logout } = useAuth();
   const updateInfo = useUpdateCheck();
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const [dailyLimit, setDailyLimit] = useState<number>(7200);
   const [showSettings, setShowSettings] = useState(false);
-  const [serverUrl, setServerUrl] = useState(() =>
-    localStorage.getItem("vrcflow-serverUrl") || DEFAULT_SERVER_URL
+  const [showHelp, setShowHelp] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [apiKey, setApiKey] = useState(() =>
+    localStorage.getItem("vrcflow-apiKey") || ""
   );
   const [oscPort, setOscPort] = useState(() =>
     parseInt(localStorage.getItem("vrcflow-oscPort") || "9000", 10)
@@ -41,47 +61,40 @@ export default function App() {
   );
   const entryIdRef = useRef(0);
 
-  // Fetch usage quota on login
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    (async () => {
-      const token = await getAccessToken();
-      if (!token) return;
-      try {
-        const res = await fetch(`${serverUrl}/usage`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setRemaining(data.remaining_seconds);
-          setDailyLimit(data.daily_limit);
-        }
-      } catch {
-        // silently ignore - will update on first transcription
-      }
-    })();
-  }, [isLoggedIn, serverUrl, getAccessToken]);
-
   const handleResult = useCallback(
-    (data: { transcription: string; translation: string; remaining: number; audioDuration: number }) => {
+    (data: { transcription: string; translation: string; audioDuration: number }) => {
       const id = ++entryIdRef.current;
+      const now = new Date();
+      const isNoise = !data.transcription.trim() && !data.translation.trim();
+
       setEntries((prev) => [
         ...prev,
         {
           id,
-          transcription: data.transcription,
-          translation: data.translation,
-          timestamp: new Date(),
+          transcription: isNoise ? `【${t("label.noise")}】` : data.transcription,
+          translation: isNoise ? "" : data.translation,
+          timestamp: now,
           audioDuration: data.audioDuration,
         },
       ]);
-      setRemaining(data.remaining);
 
-      // Send to VRChat via OSC
-      const oscText = `${data.transcription}\n${data.translation}`;
-      window.electronAPI?.sendOsc(oscText, oscPort);
+      // Persist to history
+      appendHistory({
+        id,
+        transcription: data.transcription,
+        translation: data.translation,
+        timestamp: now.toISOString(),
+        audioDuration: data.audioDuration,
+        isNoise,
+      });
+
+      // Only send to VRChat if it's actual speech
+      if (!isNoise) {
+        const oscText = `${data.transcription}\n${data.translation}`;
+        window.electronAPI?.sendOsc(oscText, oscPort);
+      }
     },
-    [oscPort]
+    [oscPort, t]
   );
 
   const handleError = useCallback((error: string) => {
@@ -89,12 +102,12 @@ export default function App() {
   }, []);
 
   const saveSettings = useCallback(
-    (url: string, port: number, src: string, tgt: string) => {
-      setServerUrl(url);
+    (key: string, port: number, src: string, tgt: string) => {
+      setApiKey(key);
       setOscPort(port);
       setSourceLang(src);
       setTargetLang(tgt);
-      localStorage.setItem("vrcflow-serverUrl", url);
+      localStorage.setItem("vrcflow-apiKey", key);
       localStorage.setItem("vrcflow-oscPort", String(port));
       localStorage.setItem("vrcflow-sourceLang", src);
       localStorage.setItem("vrcflow-targetLang", tgt);
@@ -102,60 +115,59 @@ export default function App() {
     []
   );
 
-  if (!isLoggedIn) {
-    return (
-      <div style={styles.container}>
-        {updateInfo && <UpdateBanner {...updateInfo} />}
-        <div style={styles.preAuthHeader}>
-          <button
-            onClick={() => window.electronAPI?.openExternal("https://github.com/MuoDoo/VRChat_Flow")}
-            style={styles.githubBtn}
-            title="GitHub"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-            </svg>
-          </button>
-          <LanguageSwitcher />
-          <button onClick={() => setShowSettings(!showSettings)} style={styles.settingsBtn}>
-            {t("settings.title")}
-          </button>
-        </div>
-        {showSettings && (
-          <Settings
-            serverUrl={serverUrl}
-            oscPort={oscPort}
-            sourceLang={sourceLang}
-            targetLang={targetLang}
-            onSave={saveSettings}
-            onClose={() => setShowSettings(false)}
-          />
-        )}
-        <AuthView onLogin={login} onRegister={register} />
-      </div>
-    );
-  }
-
   return (
     <div style={styles.container}>
       {updateInfo && <UpdateBanner {...updateInfo} />}
       <header style={styles.header}>
         <h1 style={styles.title}>{t("app.title")}</h1>
         <div style={styles.headerRight}>
-          <span style={styles.username}>{username}</span>
+          <button
+            onClick={() => window.electronAPI?.openExternal("https://github.com/MuoDoo/VRCFlow")}
+            style={styles.iconBtn}
+            title="GitHub"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+          </button>
+          {/* Dashboard */}
+          <button onClick={() => setShowDashboard(true)} style={styles.iconBtn} title={t("dashboard.title")}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M1 14h3V6H1v8zm5 0h3V2H6v12zm5 0h3v-5h-3v5z" />
+            </svg>
+          </button>
+          {/* History */}
+          <button onClick={() => setShowHistory(true)} style={styles.iconBtn} title={t("history.title")}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM7.25 4v4.5l3.5 2.1.75-1.23-2.75-1.63V4h-1.5z" />
+            </svg>
+          </button>
+          {/* Help */}
+          <button onClick={() => setShowHelp(true)} style={styles.iconBtn} title={t("help.title")}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 00-2 0v.5a.75.75 0 001.5 0V5zm-.25 4a.75.75 0 00-1.5 0v3a.75.75 0 001.5 0V9z" />
+            </svg>
+          </button>
           <button onClick={() => setShowSettings(!showSettings)} style={styles.settingsBtn}>
             {t("settings.title")}
-          </button>
-          <button onClick={logout} style={styles.logoutBtn}>
-            {t("auth.logout")}
           </button>
           <LanguageSwitcher />
         </div>
       </header>
 
+      {!apiKey && (
+        <div style={styles.apiKeyHint}>
+          {t("settings.apiKeyRequired")}
+        </div>
+      )}
+
+      {showDashboard && <Dashboard onClose={() => setShowDashboard(false)} />}
+      {showHistory && <History onClose={() => setShowHistory(false)} />}
+      {showHelp && <Help onClose={() => setShowHelp(false)} />}
+
       {showSettings && (
         <Settings
-          serverUrl={serverUrl}
+          apiKey={apiKey}
           oscPort={oscPort}
           sourceLang={sourceLang}
           targetLang={targetLang}
@@ -164,15 +176,12 @@ export default function App() {
         />
       )}
 
-      <StatusBar remaining={remaining} dailyLimit={dailyLimit} />
-
       <TranslationView entries={entries} />
 
       <MicControl
-        serverUrl={serverUrl}
+        apiKey={apiKey}
         sourceLang={sourceLang}
         targetLang={targetLang}
-        getAccessToken={getAccessToken}
         onResult={handleResult}
         onError={handleError}
       />
@@ -206,10 +215,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "8px",
   },
-  username: {
-    fontSize: "13px",
-    color: "#888",
-  },
   settingsBtn: {
     background: "none",
     border: "1px solid #444",
@@ -219,23 +224,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontSize: "13px",
   },
-  logoutBtn: {
-    background: "none",
-    border: "1px solid #555",
-    color: "#aaa",
-    padding: "4px 10px",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontSize: "13px",
-  },
-  preAuthHeader: {
-    display: "flex",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: "8px",
-    padding: "8px 16px",
-  },
-  githubBtn: {
+  iconBtn: {
     color: "#666",
     display: "flex",
     alignItems: "center",
@@ -243,5 +232,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: "none",
     border: "none",
     cursor: "pointer",
+  },
+  apiKeyHint: {
+    padding: "12px 16px",
+    backgroundColor: "#2a2a4a",
+    color: "#e67e22",
+    fontSize: "13px",
+    textAlign: "center",
   },
 };

@@ -6,46 +6,37 @@ VRCFlow is a real-time voice translation app for VRChat. Speak into your microph
 
 ## Download & Install (Windows)
 
-1. Go to the [Releases page](https://github.com/MuoDoo/VRChat_Flow/releases)
-2. Download the latest `.exe` installer (e.g. `VRCFlow-Setup-0.0.5.exe`)
+1. Go to the [Releases page](https://github.com/MuoDoo/VRCFlow/releases)
+2. Download the latest `.exe` installer (e.g. `VRCFlow-Setup-0.0.6.exe`)
 3. Run the installer, choose your install location, and complete the setup
 4. Launch **VRCFlow** from the Start menu or desktop shortcut
 
-> The installer is for Windows x64 (Windows 10/11). No additional runtime is needed for the client.
+> The installer is for Windows x64 (Windows 10/11). No additional runtime is needed.
 
 ## Getting Started
 
-### 1. Register an Account
+### 1. Get a DashScope API Key
 
-When you open VRCFlow for the first time, you'll see the login screen.
+VRCFlow uses Alibaba Cloud's DashScope API for speech recognition and translation. You need your own API key:
 
-1. Click **"Don't have an account? Sign up"** at the bottom
-2. Enter a username (3–20 characters, letters/numbers/underscore) and password (8+ characters)
-3. Click **Sign up**
-4. You'll see a success message — you can now log in
+1. Visit the [Alibaba Cloud Bailian API Key page](https://bailian.console.aliyun.com/cn-beijing/?apiKey=1&tab=model#/api-key)
+2. Register an account if you don't have one (new users get 10 hours of free quota)
+3. Create and copy your API key
 
-### 2. Log In
-
-1. Enter your username and password
-2. Click **Log in**
-3. You'll be taken to the main screen
-
-### 3. Configure Settings
+### 2. Configure Settings
 
 Click the **Settings** button (top-right corner) to open the settings panel:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Server URL** | Address of the VRCFlow server | `https://vrcflow.com` |
+| **DashScope API Key** | Your API key for speech recognition and translation | (required) |
 | **OSC Port** | UDP port for VRChat OSC | `9000` |
 | **Source Language** | Language you speak | Chinese |
 | **Target Language** | Language to translate into | English |
 
 Available languages: Chinese, English, Japanese, Korean.
 
-Click **Settings** button inside the panel to save, or **×** to cancel.
-
-### 4. Switch UI Language
+### 3. Switch UI Language
 
 Use the language dropdown (top-right area) to switch the interface between **English**, **中文**, and **日本語**. This setting is saved automatically.
 
@@ -63,6 +54,8 @@ Use the language dropdown (top-right area) to switch the interface between **Eng
    - Translated text (in the target language)
 6. The translated text is simultaneously sent to VRChat's Chatbox via OSC
 
+> You are only charged for the time you are actually speaking. If you press Start but remain silent, no fees are incurred.
+
 ### Stop Translating
 
 Click the red **Stop** button to stop listening.
@@ -73,13 +66,20 @@ Click the red **Stop** button to stop listening.
 |--------|---------|
 | **Ready** | Idle, press Start to begin |
 | **Listening...** | Microphone is active, waiting for speech |
-| **Processing...** | Speech detected, sending to server for translation |
+| **Processing...** | Speech detected, recognizing and translating |
 | Green dot | Listening |
 | Orange dot | Processing a speech segment |
 
-### Daily Usage Quota
+### Dashboard
 
-Each account has a daily usage limit (shown in Settings after your first translation). The remaining seconds reset every day.
+Click the bar chart icon in the header to view your usage dashboard:
+- Today's audio seconds, billed seconds, and estimated cost
+- Noise detection stats (coughs, background sounds)
+- Daily breakdown table
+
+### History
+
+Click the clock icon in the header to browse all past translations with timestamps and durations.
 
 ## VRChat Setup
 
@@ -91,7 +91,7 @@ To see translations in VRChat's Chatbox:
 4. Make sure VRCFlow's OSC Port is set to **9000** (VRChat's default)
 5. Your translations will appear above your avatar in the Chatbox
 
-> If VRChat and VRCFlow are on the same computer, everything works out of the box. If they're on different machines, set the OSC target IP in VRCFlow's Server URL settings accordingly.
+> If VRChat and VRCFlow are on the same computer, everything works out of the box.
 
 ## Troubleshooting
 
@@ -100,14 +100,6 @@ To see translations in VRChat's Chatbox:
 - **Windows**: Go to Settings → Privacy & Security → Microphone, make sure app access is enabled
 - Check that your microphone is set as the default recording device in Windows Sound Settings
 - Try closing other apps that might be using the microphone
-
-### "Session expired, please log in again"
-
-Your login session has expired. Simply log in again with your credentials.
-
-### "Daily limit reached"
-
-You've used all your daily quota. The limit resets at midnight (server time). Try again tomorrow.
 
 ### Translations Not Showing in VRChat
 
@@ -119,8 +111,8 @@ You've used all your daily quota. The limit resets at midnight (server time). Tr
 
 The voice detection model is loading. This takes a few seconds on first launch. If it stays stuck, try restarting the app.
 
-### Cannot Connect to Server
+### Recognition Failed
 
+- Check that your DashScope API Key is correct in Settings
 - Check your internet connection
-- Verify the Server URL in Settings is correct
-- The server may be temporarily unavailable — try again later
+- Your API quota may be exhausted — check your [Bailian console](https://bailian.console.aliyun.com/)

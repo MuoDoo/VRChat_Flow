@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
 import { sendChatbox } from "./osc";
+import { transcribeAudio } from "./dashscope";
 
 process.env.DIST = path.join(__dirname, "../dist");
 
@@ -39,6 +40,20 @@ app.whenReady().then(() => {
   ipcMain.handle("shell:openExternal", (_event, url: string) => {
     shell.openExternal(url);
   });
+
+  ipcMain.handle(
+    "transcribe",
+    async (
+      _event,
+      wavArrayBuffer: ArrayBuffer,
+      apiKey: string,
+      sourceLang: string,
+      targetLang: string
+    ) => {
+      const wavBuffer = Buffer.from(wavArrayBuffer);
+      return transcribeAudio(wavBuffer, apiKey, sourceLang, targetLang);
+    }
+  );
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

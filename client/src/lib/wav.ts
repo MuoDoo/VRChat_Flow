@@ -6,7 +6,7 @@
 // - Mono channel
 // - i16 conversion: clamp float [-1, 1] then multiply by 0x7FFF
 
-export function encodeWAV(samples: Float32Array, sampleRate: number): Blob {
+export function encodeWAV(samples: Float32Array, sampleRate: number): ArrayBuffer {
   const numChannels = 1;
   const bitsPerSample = 16;
   const bytesPerSample = bitsPerSample / 8;
@@ -45,7 +45,7 @@ export function encodeWAV(samples: Float32Array, sampleRate: number): Blob {
     offset += 2;
   }
 
-  return new Blob([buffer], { type: "audio/wav" });
+  return buffer;
 }
 
 function writeString(view: DataView, offset: number, str: string): void {

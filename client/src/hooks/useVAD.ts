@@ -3,14 +3,12 @@ import { useMicVAD } from "@ricky0123/vad-react";
 import { encodeWAV } from "../lib/wav";
 
 interface UseVADOptions {
-  serverUrl: string;
+  apiKey: string;
   sourceLang: string;
   targetLang: string;
-  getAccessToken: () => Promise<string | null>;
   onResult: (data: {
     transcription: string;
     translation: string;
-    remaining: number;
     audioDuration: number;
   }) => void;
   onError: (error: string) => void;
@@ -26,14 +24,7 @@ interface UseVADReturn {
 }
 
 export function useVAD(options: UseVADOptions): UseVADReturn {
-  const {
-    serverUrl,
-    sourceLang,
-    targetLang,
-    getAccessToken,
-    onResult,
-    onError,
-  } = options;
+  const { apiKey, sourceLang, targetLang, onResult, onError } = options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
   const pendingRef = useRef<Float32Array | null>(null);
@@ -46,71 +37,36 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     onErrorRef.current = onError;
   }, [onResult, onError]);
 
-  const optionsRef = useRef({ serverUrl, sourceLang, targetLang, getAccessToken });
+  const optionsRef = useRef({ apiKey, sourceLang, targetLang });
   useEffect(() => {
-    optionsRef.current = { serverUrl, sourceLang, targetLang, getAccessToken };
-  }, [serverUrl, sourceLang, targetLang, getAccessToken]);
+    optionsRef.current = { apiKey, sourceLang, targetLang };
+  }, [apiKey, sourceLang, targetLang]);
 
   const uploadAudio = useCallback(async (audio: Float32Array) => {
-    const { serverUrl, sourceLang, targetLang, getAccessToken } = optionsRef.current;
+    const { apiKey, sourceLang, targetLang } = optionsRef.current;
 
-    const token = await getAccessToken();
-    if (!token) {
-      onErrorRef.current("AUTH_INVALID_TOKEN");
+    if (!apiKey) {
+      onErrorRef.current("API_KEY_REQUIRED");
       return;
     }
 
-    const blob = encodeWAV(audio, 16000);
-    const formData = new FormData();
-    formData.append("file", blob, "audio.wav");
-    formData.append("source_lang", sourceLang);
-    formData.append("target_lang", targetLang);
-
-    const res = await fetch(`${serverUrl}/transcribe`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    if (res.status === 401) {
-      // Try refresh once
-      const newToken = await getAccessToken();
-      if (!newToken) {
-        onErrorRef.current("AUTH_INVALID_TOKEN");
-        return;
-      }
-      const retry = await fetch(`${serverUrl}/transcribe`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${newToken}` },
-        body: formData,
-      });
-      if (!retry.ok) {
-        const err = await retry.json().catch(() => null);
-        onErrorRef.current(err?.detail?.code || "transcribeFailed");
-        return;
-      }
-      const data = await retry.json();
-      onResultRef.current({
-        transcription: data.transcription,
-        translation: data.translation,
-        remaining: data.remaining_seconds,
-        audioDuration: data.audio_duration,
-      });
+    if (!window.electronAPI) {
+      onErrorRef.current("transcribeFailed");
       return;
     }
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => null);
-      onErrorRef.current(err?.detail?.code || "transcribeFailed");
-      return;
-    }
+    const wavBuffer = encodeWAV(audio, 16000);
+    const result = await window.electronAPI.transcribe(
+      wavBuffer,
+      apiKey,
+      sourceLang,
+      targetLang
+    );
 
-    const data = await res.json();
     onResultRef.current({
-      transcription: data.transcription,
-      translation: data.translation,
-      remaining: data.remaining_seconds,
-      audioDuration: data.audio_duration,
+      transcription: result.transcription,
+      translation: result.translation,
+      audioDuration: result.audioDuration,
     });
   }, []);
 
@@ -127,7 +83,7 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     try {
       await uploadAudio(audio);
     } catch (e) {
-      console.error("Upload error:", e);
+      console.error("Transcribe error:", e);
       onErrorRef.current("transcribeFailed");
     }
 
