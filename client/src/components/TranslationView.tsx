@@ -5,6 +5,7 @@ interface TranslationEntry {
   transcription: string;
   translation: string;
   timestamp: Date;
+  audioDuration: number;
 }
 
 interface TranslationViewProps {
@@ -22,8 +23,13 @@ export default function TranslationView({ entries }: TranslationViewProps) {
     <div style={styles.container}>
       {entries.map((entry) => (
         <div key={entry.id} style={styles.entry}>
-          <div style={styles.time}>
-            {entry.timestamp.toLocaleTimeString()}
+          <div style={styles.entryHeader}>
+            <div style={styles.time}>
+              {entry.timestamp.toLocaleTimeString()}
+            </div>
+            <div style={styles.duration}>
+              {entry.audioDuration.toFixed(1)}s
+            </div>
           </div>
           <div style={styles.transcription}>{entry.transcription}</div>
           <div style={styles.translation}>{entry.translation}</div>
@@ -46,10 +52,19 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "#222244",
     borderRadius: "6px",
   },
+  entryHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "4px",
+  },
   time: {
     fontSize: "11px",
     color: "#555",
-    marginBottom: "4px",
+  },
+  duration: {
+    fontSize: "11px",
+    color: "#666",
   },
   transcription: {
     fontSize: "14px",
