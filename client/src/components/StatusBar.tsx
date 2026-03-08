@@ -6,6 +6,7 @@ const GITHUB_URL = "https://github.com/MuoDoo/VRChat_Flow";
 
 interface StatusBarProps {
   remaining: number | null;
+  dailyLimit: number;
 }
 
 function formatDuration(totalSeconds: number): string {
@@ -28,14 +29,15 @@ function getResetCountdown(): string {
   return `${diffM}m`;
 }
 
-export default function StatusBar({ remaining }: StatusBarProps) {
+export default function StatusBar({ remaining, dailyLimit }: StatusBarProps) {
   const { t } = useTranslation();
 
   const resetTime = useMemo(() => getResetCountdown(), []);
 
-  const displayRemaining = remaining ?? DEFAULT_DAILY_LIMIT;
-  const used = Math.max(0, DEFAULT_DAILY_LIMIT - displayRemaining);
-  const usedPercent = Math.min(100, (used / DEFAULT_DAILY_LIMIT) * 100);
+  const limit = dailyLimit || DEFAULT_DAILY_LIMIT;
+  const displayRemaining = remaining ?? limit;
+  const used = Math.max(0, limit - displayRemaining);
+  const usedPercent = Math.min(100, (used / limit) * 100);
 
   // Color based on usage: green → yellow → red
   const barColor =

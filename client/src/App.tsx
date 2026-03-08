@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./hooks/useAuth";
 import { DEFAULT_SERVER_URL } from "./constants";
@@ -24,6 +24,7 @@ export default function App() {
   const updateInfo = useUpdateCheck();
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [dailyLimit, setDailyLimit] = useState<number>(7200);
   const [showSettings, setShowSettings] = useState(false);
   const [serverUrl, setServerUrl] = useState(() =>
     localStorage.getItem("vrcflow-serverUrl") || DEFAULT_SERVER_URL
@@ -38,6 +39,27 @@ export default function App() {
     localStorage.getItem("vrcflow-targetLang") || "en"
   );
   const entryIdRef = useRef(0);
+
+  // Fetch usage quota on login
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    (async () => {
+      const token = await getAccessToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`${serverUrl}/usage`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setRemaining(data.remaining_seconds);
+          setDailyLimit(data.daily_limit);
+        }
+      } catch {
+        // silently ignore - will update on first transcription
+      }
+    })();
+  }, [isLoggedIn, serverUrl, getAccessToken]);
 
   const handleResult = useCallback(
     (data: { transcription: string; translation: string; remaining: number }) => {
@@ -140,7 +162,7 @@ export default function App() {
         />
       )}
 
-      <StatusBar remaining={remaining} />
+      <StatusBar remaining={remaining} dailyLimit={dailyLimit} />
 
       <TranslationView entries={entries} />
 
