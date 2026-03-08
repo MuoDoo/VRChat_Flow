@@ -22,7 +22,7 @@ export default function UpdateBanner({ latestVersion, downloadUrl }: Props) {
         href="#"
         onClick={(e) => {
           e.preventDefault();
-          window.electronAPI.openExternal(downloadUrl);
+          window.electronAPI?.openExternal(downloadUrl);
         }}
         style={styles.link}
       >
