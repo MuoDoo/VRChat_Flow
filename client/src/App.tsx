@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MicControl from "./components/MicControl";
 import SpeakerControl from "./components/SpeakerControl";
@@ -11,9 +11,17 @@ import History from "./components/History";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import UpdateBanner from "./components/UpdateBanner";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
-import { renderOverlayText } from "./lib/overlayRenderer";
+import { renderOverlayMessages } from "./lib/overlayRenderer";
 
 const HISTORY_KEY = "vrcflow-history";
+const OVERLAY_TTL = 8000; // Overlay messages expire after 8 seconds
+const MAX_OVERLAY_MESSAGES = 3;
+
+/** Check if transcription result is noise (empty or punctuation-only) */
+function isOverlayNoise(transcription: string, translation: string): boolean {
+  const strip = (s: string) => s.replace(/[\s\p{P}]/gu, "");
+  return strip(transcription).length === 0 && strip(translation).length === 0;
+}
 
 interface TranslationEntry {
   id: number;
@@ -67,6 +75,9 @@ export default function App() {
     localStorage.getItem("vrcflow-overlayEnabled") === "true"
   );
   const overlayInitRef = useRef(false);
+  const overlayMessagesRef = useRef<Array<{ transcription: string; translation: string; expiresAt: number }>>([]);
+  const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overlayVisibleRef = useRef(false);
   const micVolumeRef = useRef(0);
   const speakerVolumeRef = useRef(0);
   const entryIdRef = useRef(0);
@@ -117,9 +128,55 @@ export default function App() {
     [addEntry]
   );
 
+  const refreshOverlay = useCallback(async () => {
+    if (!window.electronAPI) return;
+
+    const now = Date.now();
+    overlayMessagesRef.current = overlayMessagesRef.current.filter(
+      (m) => m.expiresAt > now
+    );
+
+    if (overlayTimerRef.current) {
+      clearTimeout(overlayTimerRef.current);
+      overlayTimerRef.current = null;
+    }
+
+    if (overlayMessagesRef.current.length === 0) {
+      if (overlayVisibleRef.current) {
+        window.electronAPI.overlayHide();
+        overlayVisibleRef.current = false;
+      }
+      return;
+    }
+
+    const messages = overlayMessagesRef.current.map((m) => ({
+      transcription: m.transcription,
+      translation: m.translation,
+    }));
+    const { buffer, width, height } = renderOverlayMessages(messages);
+    await window.electronAPI.overlayUpdate(buffer, width, height);
+
+    if (!overlayVisibleRef.current) {
+      window.electronAPI.overlayShow();
+      overlayVisibleRef.current = true;
+    }
+
+    // Schedule next refresh at earliest expiration
+    const earliest = Math.min(
+      ...overlayMessagesRef.current.map((m) => m.expiresAt)
+    );
+    overlayTimerRef.current = setTimeout(
+      refreshOverlay,
+      Math.max(earliest - Date.now(), 100)
+    );
+  }, []);
+
   const sendToOverlay = useCallback(
     async (transcription: string, translation: string) => {
       if (!overlayEnabled || !window.electronAPI) return;
+
+      // Skip noise (empty or punctuation-only results)
+      if (isOverlayNoise(transcription, translation)) return;
 
       // Lazy-init overlay on first use
       if (!overlayInitRef.current) {
@@ -128,17 +185,29 @@ export default function App() {
           console.warn("Overlay init failed:", result.error);
           return;
         }
-        await window.electronAPI.overlayShow();
         overlayInitRef.current = true;
       }
 
-      const { buffer, width, height } = renderOverlayText(
+      const now = Date.now();
+      overlayMessagesRef.current.push({
         transcription,
-        translation
+        translation,
+        expiresAt: now + OVERLAY_TTL,
+      });
+
+      // Remove expired
+      overlayMessagesRef.current = overlayMessagesRef.current.filter(
+        (m) => m.expiresAt > now
       );
-      await window.electronAPI.overlayUpdate(buffer, width, height);
+
+      // Keep at most MAX_OVERLAY_MESSAGES
+      while (overlayMessagesRef.current.length > MAX_OVERLAY_MESSAGES) {
+        overlayMessagesRef.current.shift();
+      }
+
+      await refreshOverlay();
     },
-    [overlayEnabled]
+    [overlayEnabled, refreshOverlay]
   );
 
   const handleSpeakerResult = useCallback(
@@ -153,12 +222,29 @@ export default function App() {
     (enabled: boolean) => {
       setOverlayEnabled(enabled);
       localStorage.setItem("vrcflow-overlayEnabled", String(enabled));
-      if (!enabled && overlayInitRef.current) {
-        window.electronAPI?.overlayHide();
+      if (!enabled) {
+        overlayMessagesRef.current = [];
+        if (overlayTimerRef.current) {
+          clearTimeout(overlayTimerRef.current);
+          overlayTimerRef.current = null;
+        }
+        if (overlayVisibleRef.current) {
+          window.electronAPI?.overlayHide();
+          overlayVisibleRef.current = false;
+        }
       }
     },
     []
   );
+
+  // Cleanup overlay timer on unmount
+  useEffect(() => {
+    return () => {
+      if (overlayTimerRef.current) {
+        clearTimeout(overlayTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleError = useCallback((error: string) => {
     console.error("Transcription error:", error);
