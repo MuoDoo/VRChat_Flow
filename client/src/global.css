@@ -1,3 +1,9 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 /* Global dark theme for native form elements */
 
 /* Fix white dropdown options on Windows */
@@ -33,4 +39,39 @@ select {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #4a4a8a;
+}
+
+/* Rainbow animated border for selected model card */
+@property --rainbow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rainbow-spin {
+  to { --rainbow-angle: 360deg; }
+}
+
+.rainbow-border {
+  position: relative;
+  border: 1px solid transparent !important;
+}
+
+.rainbow-border::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 7px;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--rainbow-angle),
+    #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #5f27cd, #ff6b6b
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: rainbow-spin 3s linear infinite;
+  pointer-events: none;
 }

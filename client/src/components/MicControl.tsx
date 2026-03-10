@@ -2,32 +2,44 @@ import { useTranslation } from "react-i18next";
 import { useVAD } from "../hooks/useVAD";
 
 interface MicControlProps {
+  provider: string;
   apiKey: string;
+  model: string;
   sourceLang: string;
   targetLang: string;
-  volumeRef?: React.MutableRefObject<number>;
+  timeoutSec: number;
+  speechPadMs: number;
   onResult: (data: {
     transcription: string;
     translation: string;
     audioDuration: number;
+    processingTime: number;
+    usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
+    generationId?: string;
   }) => void;
   onError: (error: string) => void;
 }
 
 export default function MicControl({
+  provider,
   apiKey,
+  model,
   sourceLang,
   targetLang,
-  volumeRef,
+  timeoutSec,
+  speechPadMs,
   onResult,
   onError,
 }: MicControlProps) {
   const { t } = useTranslation();
   const { start, stop, isListening, isProcessing, vadLoading, vadError } = useVAD({
+    provider,
     apiKey,
+    model,
     sourceLang,
     targetLang,
-    volumeRef,
+    timeoutSec,
+    speechPadMs,
     onResult,
     onError,
   });

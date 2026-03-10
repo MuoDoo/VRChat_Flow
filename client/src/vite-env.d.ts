@@ -2,10 +2,19 @@
 
 export {};
 
+interface UsageInfo {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cost?: number;
+}
+
 interface TranscribeResult {
   transcription: string;
   translation: string;
   audioDuration: number;
+  usage?: UsageInfo;
+  generationId?: string;
 }
 
 interface OverlayInitResult {
@@ -16,9 +25,12 @@ interface OverlayInitResult {
 interface ElectronAPI {
   sendOsc: (message: string, port: number) => Promise<void>;
   openExternal: (url: string) => Promise<void>;
+  openLogFile: () => Promise<void>;
   transcribe: (
     wavBuffer: ArrayBuffer,
+    provider: string,
     apiKey: string,
+    model: string,
     sourceLang: string,
     targetLang: string
   ) => Promise<TranscribeResult>;

@@ -2,34 +2,46 @@ import { useTranslation } from "react-i18next";
 import { useSpeakerVAD } from "../hooks/useSpeakerVAD";
 
 interface SpeakerControlProps {
+  provider: string;
   apiKey: string;
+  model: string;
   sourceLang: string;
   targetLang: string;
-  volumeRef?: React.MutableRefObject<number>;
+  timeoutSec: number;
+  speechPadMs: number;
   onResult: (data: {
     transcription: string;
     translation: string;
     audioDuration: number;
+    processingTime: number;
+    usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
+    generationId?: string;
   }) => void;
   onError: (error: string) => void;
 }
 
 export default function SpeakerControl({
+  provider,
   apiKey,
+  model,
   sourceLang,
   targetLang,
-  volumeRef,
+  timeoutSec,
+  speechPadMs,
   onResult,
   onError,
 }: SpeakerControlProps) {
   const { t } = useTranslation();
   const { start, stop, isListening, isProcessing, vadLoading, vadError } =
     useSpeakerVAD({
+      provider,
       apiKey,
+      model,
       // Speaker capture translates others' speech — reverse the language pair
       sourceLang: targetLang,
       targetLang: sourceLang,
-      volumeRef,
+      timeoutSec,
+      speechPadMs,
       onResult,
       onError,
     });

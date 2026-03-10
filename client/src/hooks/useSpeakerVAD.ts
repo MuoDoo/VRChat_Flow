@@ -1,17 +1,22 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { useMicVAD } from "@ricky0123/vad-react";
 import { encodeWAV } from "../lib/wav";
-import { startVolumeMonitor } from "../lib/volumeMonitor";
 
 interface UseSpeakerVADOptions {
+  provider: string;
   apiKey: string;
+  model: string;
   sourceLang: string;
   targetLang: string;
-  volumeRef?: React.MutableRefObject<number>;
+  timeoutSec: number;
+  speechPadMs: number;
   onResult: (data: {
     transcription: string;
     translation: string;
     audioDuration: number;
+    processingTime: number;
+    usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
+    generationId?: string;
   }) => void;
   onError: (error: string) => void;
 }
@@ -41,14 +46,11 @@ async function acquireLoopbackStream(): Promise<MediaStream> {
 export function useSpeakerVAD(
   options: UseSpeakerVADOptions
 ): UseSpeakerVADReturn {
-  const { apiKey, sourceLang, targetLang, volumeRef, onResult, onError } =
+  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, speechPadMs, onResult, onError } =
     options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
   const pendingRef = useRef<Float32Array | null>(null);
-  const volumeCleanupRef = useRef<(() => void) | null>(null);
-  const volumeRefStable = useRef(volumeRef);
-  volumeRefStable.current = volumeRef;
 
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
@@ -57,13 +59,13 @@ export function useSpeakerVAD(
     onErrorRef.current = onError;
   }, [onResult, onError]);
 
-  const optionsRef = useRef({ apiKey, sourceLang, targetLang });
+  const optionsRef = useRef({ provider, apiKey, model, sourceLang, targetLang, timeoutSec });
   useEffect(() => {
-    optionsRef.current = { apiKey, sourceLang, targetLang };
-  }, [apiKey, sourceLang, targetLang]);
+    optionsRef.current = { provider, apiKey, model, sourceLang, targetLang, timeoutSec };
+  }, [provider, apiKey, model, sourceLang, targetLang, timeoutSec]);
 
   const uploadAudio = useCallback(async (audio: Float32Array) => {
-    const { apiKey, sourceLang, targetLang } = optionsRef.current;
+    const { provider, apiKey, model, sourceLang, targetLang, timeoutSec } = optionsRef.current;
 
     if (!apiKey) {
       onErrorRef.current("API_KEY_REQUIRED");
@@ -76,17 +78,23 @@ export function useSpeakerVAD(
     }
 
     const wavBuffer = encodeWAV(audio, 16000);
-    const result = await window.electronAPI.transcribe(
-      wavBuffer,
-      apiKey,
-      sourceLang,
-      targetLang
-    );
+    const t0 = performance.now();
+    const timeoutMs = timeoutSec * 1000;
+    const result = await Promise.race([
+      window.electronAPI.transcribe(wavBuffer, provider, apiKey, model, sourceLang, targetLang),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Processing timeout (${timeoutSec}s)`)), timeoutMs)
+      ),
+    ]);
+    const processingTime = (performance.now() - t0) / 1000;
 
     onResultRef.current({
       transcription: result.transcription,
       translation: result.translation,
       audioDuration: result.audioDuration,
+      processingTime,
+      usage: result.usage,
+      generationId: result.generationId,
     });
   }, []);
 
@@ -104,7 +112,8 @@ export function useSpeakerVAD(
         await uploadAudio(audio);
       } catch (e) {
         console.error("Speaker transcribe error:", e);
-        onErrorRef.current("transcribeFailed");
+        const msg = e instanceof Error ? e.message : "transcribeFailed";
+        onErrorRef.current(msg);
       }
 
       inflightRef.current = false;
@@ -120,19 +129,6 @@ export function useSpeakerVAD(
     [uploadAudio]
   );
 
-  const getStreamWithMonitor = useCallback(async () => {
-    const stream = await acquireLoopbackStream();
-    // Set up volume monitoring
-    volumeCleanupRef.current?.();
-    if (volumeRefStable.current) {
-      volumeCleanupRef.current = startVolumeMonitor(
-        stream,
-        volumeRefStable.current
-      );
-    }
-    return stream;
-  }, []);
-
   const vad = useMicVAD({
     startOnLoad: false,
     model: "legacy",
@@ -141,8 +137,8 @@ export function useSpeakerVAD(
     positiveSpeechThreshold: 0.5,
     minSpeechMs: 150,
     preSpeechPadMs: 300,
-    redemptionMs: 250,
-    getStream: getStreamWithMonitor,
+    redemptionMs: speechPadMs,
+    getStream: acquireLoopbackStream,
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },
@@ -164,17 +160,8 @@ export function useSpeakerVAD(
   }, [vad]);
 
   const stop = useCallback(async () => {
-    volumeCleanupRef.current?.();
-    volumeCleanupRef.current = null;
     await vad.pause();
   }, [vad]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      volumeCleanupRef.current?.();
-    };
-  }, []);
 
   return {
     start,

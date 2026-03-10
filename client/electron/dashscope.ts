@@ -1,10 +1,19 @@
 import WebSocket from "ws";
 import { randomUUID } from "crypto";
 
+export interface UsageInfo {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cost?: number;
+}
+
 export interface TranscribeResult {
   transcription: string;
   translation: string;
   audioDuration: number;
+  usage?: UsageInfo;
+  generationId?: string;
 }
 
 export async function transcribeAudio(

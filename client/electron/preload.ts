@@ -5,12 +5,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("osc:send", message, port),
   openExternal: (url: string) =>
     ipcRenderer.invoke("shell:openExternal", url),
+  openLogFile: () => ipcRenderer.invoke("log:openFile"),
   transcribe: (
     wavBuffer: ArrayBuffer,
+    provider: string,
     apiKey: string,
+    model: string,
     sourceLang: string,
     targetLang: string
-  ) => ipcRenderer.invoke("transcribe", wavBuffer, apiKey, sourceLang, targetLang),
+  ) => ipcRenderer.invoke("transcribe", wavBuffer, provider, apiKey, model, sourceLang, targetLang),
 
   // SteamVR Overlay
   overlayInit: () => ipcRenderer.invoke("overlay:init"),

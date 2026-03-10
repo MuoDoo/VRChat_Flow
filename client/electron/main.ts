@@ -7,8 +7,10 @@ import {
   shell,
 } from "electron";
 import path from "node:path";
+import fs from "node:fs";
 import { sendChatbox } from "./osc";
 import { transcribeAudio } from "./dashscope";
+import { transcribeAudioOpenRouter } from "./openrouter";
 import {
   initOverlay,
   updateOverlayImage,
@@ -18,6 +20,49 @@ import {
 } from "./overlay";
 
 process.env.DIST = path.join(__dirname, "../dist");
+
+// --- Log file setup ---
+const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB
+let logFilePath = "";
+
+function setupLogFile() {
+  const logsDir = path.join(app.getPath("userData"), "logs");
+  fs.mkdirSync(logsDir, { recursive: true });
+  logFilePath = path.join(logsDir, "vrcflow.log");
+
+  // Rotate: if log exceeds MAX_LOG_SIZE, keep last half
+  try {
+    const stat = fs.statSync(logFilePath);
+    if (stat.size > MAX_LOG_SIZE) {
+      const content = fs.readFileSync(logFilePath, "utf-8");
+      const half = content.slice(content.length / 2);
+      const firstNewline = half.indexOf("\n");
+      fs.writeFileSync(logFilePath, firstNewline >= 0 ? half.slice(firstNewline + 1) : half);
+    }
+  } catch { /* file doesn't exist yet */ }
+
+  const logStream = fs.createWriteStream(logFilePath, { flags: "a" });
+  const timestamp = () => new Date().toISOString();
+
+  const origLog = console.log;
+  const origErr = console.error;
+  const origWarn = console.warn;
+
+  console.log = (...args: unknown[]) => {
+    origLog(...args);
+    logStream.write(`[${timestamp()}] [INFO] ${args.map(String).join(" ")}\n`);
+  };
+  console.error = (...args: unknown[]) => {
+    origErr(...args);
+    logStream.write(`[${timestamp()}] [ERROR] ${args.map(String).join(" ")}\n`);
+  };
+  console.warn = (...args: unknown[]) => {
+    origWarn(...args);
+    logStream.write(`[${timestamp()}] [WARN] ${args.map(String).join(" ")}\n`);
+  };
+
+  console.log("=== VRCFlow started ===");
+}
 
 // Enable system audio loopback capture (platform-specific flags)
 if (process.platform === "darwin") {
@@ -58,6 +103,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  setupLogFile();
+
   // Auto-grant loopback audio for speaker capture (no picker dialog)
   session.defaultSession.setDisplayMediaRequestHandler(
     (_request, callback) => {
@@ -77,16 +124,25 @@ app.whenReady().then(() => {
     shell.openExternal(url);
   });
 
+  ipcMain.handle("log:openFile", () => {
+    if (logFilePath) shell.showItemInFolder(logFilePath);
+  });
+
   ipcMain.handle(
     "transcribe",
     async (
       _event,
       wavArrayBuffer: ArrayBuffer,
+      provider: string,
       apiKey: string,
+      model: string,
       sourceLang: string,
       targetLang: string
     ) => {
       const wavBuffer = Buffer.from(wavArrayBuffer);
+      if (provider === "openrouter") {
+        return transcribeAudioOpenRouter(wavBuffer, apiKey, model, sourceLang, targetLang);
+      }
       return transcribeAudio(wavBuffer, apiKey, sourceLang, targetLang);
     }
   );
