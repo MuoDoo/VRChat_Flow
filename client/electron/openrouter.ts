@@ -29,6 +29,25 @@ export async function transcribeAudioOpenRouter(
       ...(model.startsWith("google/") ? { reasoning: { enabled: false } } : {}),
       messages: [
         {
+          role: "system",
+          content: [
+            {
+              type: "text",
+              text: `You are a real-time speech transcription and translation tool. Your task:
+1. Transcribe the audio EXACTLY as spoken — do not add, infer, or fabricate any words.
+2. Translate the transcription into ${targetLangName}.
+
+Rules:
+- The audio is a short voice clip (often just a few words or a single phrase).
+- If the audio is unclear, very short, or contains only filler sounds (e.g. "嗯", "ah", "えっと"), transcribe only what you actually hear.
+- NEVER generate extra sentences, context, or commentary beyond what was spoken.
+- NEVER hallucinate or guess content that is not in the audio.
+- If you hear nothing meaningful, return empty strings for both fields.
+- The speaker primarily uses ${sourceLangName}, but may mix in other languages.`,
+            },
+          ],
+        },
+        {
           role: "user",
           content: [
             {
@@ -40,7 +59,7 @@ export async function transcribeAudioOpenRouter(
             },
             {
               type: "text",
-              text: `${sourceLangName} (may be mixed) → ${targetLangName}`,
+              text: `Transcribe this audio (${sourceLangName}) and translate to ${targetLangName}. Output ONLY what was spoken.`,
             },
           ],
         },
@@ -50,12 +69,18 @@ export async function transcribeAudioOpenRouter(
           type: "function",
           function: {
             name: "submit_transcription",
-            description: `ASR + translate to ${targetLangName}`,
+            description: `Submit the exact transcription and its ${targetLangName} translation. Only include words actually spoken in the audio.`,
             parameters: {
               type: "object",
               properties: {
-                transcription: { type: "string" },
-                translation: { type: "string" },
+                transcription: {
+                  type: "string",
+                  description: "Exact transcription of the spoken audio. Empty string if nothing meaningful was said.",
+                },
+                translation: {
+                  type: "string",
+                  description: `Translation of the transcription into ${targetLangName}. Empty string if transcription is empty.`,
+                },
               },
               required: ["transcription", "translation"],
             },
