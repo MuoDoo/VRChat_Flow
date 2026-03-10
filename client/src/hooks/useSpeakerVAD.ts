@@ -1,7 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { useMicVAD } from "@ricky0123/vad-react";
 import { encodeWAV } from "../lib/wav";
-import { startVolumeMonitor } from "../lib/volumeMonitor";
 
 interface UseSpeakerVADOptions {
   provider: string;
@@ -10,7 +9,7 @@ interface UseSpeakerVADOptions {
   sourceLang: string;
   targetLang: string;
   timeoutSec: number;
-  volumeRef?: React.MutableRefObject<number>;
+  speechPadMs: number;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -47,14 +46,11 @@ async function acquireLoopbackStream(): Promise<MediaStream> {
 export function useSpeakerVAD(
   options: UseSpeakerVADOptions
 ): UseSpeakerVADReturn {
-  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, volumeRef, onResult, onError } =
+  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, speechPadMs, onResult, onError } =
     options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
   const pendingRef = useRef<Float32Array | null>(null);
-  const volumeCleanupRef = useRef<(() => void) | null>(null);
-  const volumeRefStable = useRef(volumeRef);
-  volumeRefStable.current = volumeRef;
 
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
@@ -133,19 +129,6 @@ export function useSpeakerVAD(
     [uploadAudio]
   );
 
-  const getStreamWithMonitor = useCallback(async () => {
-    const stream = await acquireLoopbackStream();
-    // Set up volume monitoring
-    volumeCleanupRef.current?.();
-    if (volumeRefStable.current) {
-      volumeCleanupRef.current = startVolumeMonitor(
-        stream,
-        volumeRefStable.current
-      );
-    }
-    return stream;
-  }, []);
-
   const vad = useMicVAD({
     startOnLoad: false,
     model: "legacy",
@@ -154,8 +137,8 @@ export function useSpeakerVAD(
     positiveSpeechThreshold: 0.5,
     minSpeechMs: 150,
     preSpeechPadMs: 300,
-    redemptionMs: 250,
-    getStream: getStreamWithMonitor,
+    redemptionMs: speechPadMs,
+    getStream: acquireLoopbackStream,
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },
@@ -177,17 +160,8 @@ export function useSpeakerVAD(
   }, [vad]);
 
   const stop = useCallback(async () => {
-    volumeCleanupRef.current?.();
-    volumeCleanupRef.current = null;
     await vad.pause();
   }, [vad]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      volumeCleanupRef.current?.();
-    };
-  }, []);
 
   return {
     start,

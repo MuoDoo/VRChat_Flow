@@ -12,6 +12,7 @@ interface SettingsProps {
   targetLang: string;
   displayCurrency: string;
   processingTimeout: number;
+  speechPadMs: number;
   overlayEnabled: boolean;
   onSave: (settings: {
     provider: string;
@@ -23,6 +24,7 @@ interface SettingsProps {
     targetLang: string;
     displayCurrency: string;
     processingTimeout: number;
+    speechPadMs: number;
   }) => void;
   onOverlayToggle: (enabled: boolean) => void;
   onClose: () => void;
@@ -38,6 +40,7 @@ export default function Settings({
   targetLang: initTgt,
   displayCurrency: initCurrency,
   processingTimeout: initTimeout,
+  speechPadMs: initSpeechPad,
   overlayEnabled,
   onSave,
   onOverlayToggle,
@@ -54,6 +57,7 @@ export default function Settings({
   const [tgt, setTgt] = useState(initTgt);
   const [currency, setCurrency] = useState(initCurrency);
   const [timeout, setTimeout_] = useState(String(initTimeout));
+  const [speechPad, setSpeechPad] = useState(String(initSpeechPad));
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [modelDetailId, setModelDetailId] = useState<string | null>(null);
   const [showDashscopeHelp, setShowDashscopeHelp] = useState(false);
@@ -88,6 +92,7 @@ export default function Settings({
       targetLang: tgt,
       displayCurrency: currency,
       processingTimeout: Math.max(1, parseInt(timeout, 10) || 5),
+      speechPadMs: Math.max(100, parseInt(speechPad, 10) || 600),
     });
     onClose();
   };
@@ -269,7 +274,10 @@ export default function Settings({
                     >
                       <div style={styles.modelCardHeader}>
                         <div>
-                          <div style={styles.modelName}>{model.name}</div>
+                          <div style={styles.modelName}>
+                            {model.name}
+                            {model.recommended && <span style={styles.recommendedBadge}>{t("settings.recommended")}</span>}
+                          </div>
                           <div style={styles.modelId}>{model.id}</div>
                         </div>
                         <button
@@ -285,7 +293,9 @@ export default function Settings({
                       <div style={styles.modelPriceRow}>
                         <span style={styles.modelPriceLabel}>Input</span>
                         <span style={styles.modelPriceValue}>
-                          ${model.pricing.inputAudio ?? model.pricing.inputText}/1M tokens
+                          {model.pricing.audioPricingUnit === "seconds"
+                            ? `$${model.pricing.inputAudio}/1M sec`
+                            : `$${model.pricing.inputAudio ?? model.pricing.inputText}/1M tokens`}
                         </span>
                       </div>
                       <div style={styles.modelPriceRow}>
@@ -416,6 +426,28 @@ export default function Settings({
                   <span style={styles.timeoutUnit}>s</span>
                 </div>
                 <div style={styles.pricingNote}>{t("settings.processingTimeoutDesc")}</div>
+
+                <label style={{ ...styles.label, marginTop: "12px" }}>{t("settings.speechPadMs")}</label>
+                <div style={styles.timeoutRow}>
+                  <input
+                    style={{ ...styles.input, flex: 1 }}
+                    type="number"
+                    min="100"
+                    max="2000"
+                    step="50"
+                    value={speechPad}
+                    onChange={(e) => setSpeechPad(e.target.value)}
+                  />
+                  <span style={styles.timeoutUnit}>ms</span>
+                </div>
+                <div style={styles.pricingNote}>{t("settings.speechPadMsDesc")}</div>
+
+                <button
+                  onClick={() => window.electronAPI?.openLogFile()}
+                  style={styles.logBtn}
+                >
+                  {t("settings.openLogFile")}
+                </button>
               </div>
             )}
           </div>
@@ -495,7 +527,7 @@ function ModelDetail({ model, onBack }: { model: ModelInfo; onBack: () => void }
               <tr>
                 <td style={styles.pricingTd}>Audio Input</td>
                 <td style={{ ...styles.pricingTd, textAlign: "right" }}>
-                  ${model.pricing.inputAudio}/1M tokens
+                  ${model.pricing.inputAudio}/1M {model.pricing.audioPricingUnit === "seconds" ? "sec" : "tokens"}
                 </td>
               </tr>
             )}
@@ -512,18 +544,29 @@ function ModelDetail({ model, onBack }: { model: ModelInfo; onBack: () => void }
       {/* Cost estimation */}
       <div style={styles.pricingCard}>
         <div style={styles.pricingTitle}>{t("settings.costEstimate")}</div>
-        <div style={styles.estimateRow}>
-          <span style={styles.pricingLabel}>{t("settings.costPer1Min")}</span>
-          <span style={styles.estimateValue}>
-            ~${((1500 * (model.pricing.inputAudio ?? model.pricing.inputText) + 100 * model.pricing.outputText) / 1_000_000).toFixed(4)}
-          </span>
-        </div>
-        <div style={styles.estimateRow}>
-          <span style={styles.pricingLabel}>{t("settings.costPer1Hour")}</span>
-          <span style={styles.estimateValue}>
-            ~${((1500 * 60 * (model.pricing.inputAudio ?? model.pricing.inputText) + 100 * 60 * model.pricing.outputText) / 1_000_000).toFixed(2)}
-          </span>
-        </div>
+        {(() => {
+          // For seconds-based audio pricing: $X per 1M seconds
+          // 1 min = 60 seconds, 1 hour = 3600 seconds
+          const isPerSec = model.pricing.audioPricingUnit === "seconds";
+          const audioCostPerMin = isPerSec
+            ? (60 * (model.pricing.inputAudio ?? 0)) / 1_000_000
+            : (1500 * (model.pricing.inputAudio ?? model.pricing.inputText)) / 1_000_000;
+          const outputCostPerMin = (100 * model.pricing.outputText) / 1_000_000;
+          const costPerMin = audioCostPerMin + outputCostPerMin;
+          const costPerHour = costPerMin * 60;
+          return (
+            <>
+              <div style={styles.estimateRow}>
+                <span style={styles.pricingLabel}>{t("settings.costPer1Min")}</span>
+                <span style={styles.estimateValue}>~${costPerMin.toFixed(4)}</span>
+              </div>
+              <div style={styles.estimateRow}>
+                <span style={styles.pricingLabel}>{t("settings.costPer1Hour")}</span>
+                <span style={styles.estimateValue}>~${costPerHour.toFixed(2)}</span>
+              </div>
+            </>
+          );
+        })()}
         <div style={styles.pricingNote}>{t("settings.costEstimateNote")}</div>
       </div>
 
@@ -765,6 +808,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "13px",
     fontWeight: 600,
     color: "#e0e0e0",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  recommendedBadge: {
+    fontSize: "10px",
+    color: "#27ae60",
+    backgroundColor: "rgba(39,174,96,0.15)",
+    padding: "1px 5px",
+    borderRadius: "3px",
+    fontWeight: 500,
   },
   modelId: {
     fontSize: "11px",
@@ -988,6 +1042,16 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 10px",
     borderRadius: "4px",
     lineHeight: "1.5",
+  },
+  logBtn: {
+    padding: "6px 12px",
+    borderRadius: "4px",
+    border: "1px solid #444",
+    backgroundColor: "transparent",
+    color: "#aaa",
+    fontSize: "12px",
+    cursor: "pointer",
+    marginTop: "4px",
   },
   advancedToggle: {
     background: "none",

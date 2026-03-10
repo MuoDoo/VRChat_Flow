@@ -19,6 +19,7 @@
   "settings.apiKeyRequired": "設定から {{provider}} API Key を入力してください。",
   "settings.model": "モデル",
   "settings.viewDetail": "詳細を見る",
+  "settings.recommended": "推奨",
 
   "settings.aliyunTitle": "Aliyun DashScope",
   "settings.aliyunDesc": "DashScope gummy-chat-v1によるリアルタイム音声認識＋翻訳。低レイテンシ、音声時間で課金。",
@@ -61,6 +62,9 @@
   "settings.advanced": "詳細設定",
   "settings.processingTimeout": "処理タイムアウト",
   "settings.processingTimeoutDesc": "処理がこの時間を超えた場合、結果を破棄します。タイムアウトが頻発する場合は値を大きくしてください。",
+  "settings.speechPadMs": "音声分割間隔",
+  "settings.speechPadMsDesc": "無音検出後、発話の終了と判定するまでの待機時間。文が途中で分割される場合は値を大きくしてください。",
+  "settings.openLogFile": "ログファイルを開く",
 
   "update.available": "新バージョンがあります：v{{latest}}（現在：v{{current}}）",
   "update.download": "ダウンロード",

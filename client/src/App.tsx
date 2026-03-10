@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MicControl from "./components/MicControl";
 import SpeakerControl from "./components/SpeakerControl";
-import VolumeBars from "./components/VolumeBars";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
 
@@ -42,6 +41,7 @@ function appendHistory(entry: {
   translation: string;
   timestamp: string;
   audioDuration: number;
+  processingTime: number;
   isNoise: boolean;
   provider?: string;
   model?: string;
@@ -81,7 +81,7 @@ export default function App() {
     localStorage.getItem("vrcflow-openrouterKey") || ""
   );
   const [openrouterModel, setOpenrouterModel] = useState(() =>
-    localStorage.getItem("vrcflow-openrouterModel") || "google/gemini-3.1-flash-lite-preview"
+    localStorage.getItem("vrcflow-openrouterModel") || "mistralai/voxtral-small-24b-2507"
   );
 
   // General settings
@@ -100,6 +100,9 @@ export default function App() {
   const [processingTimeout, setProcessingTimeout] = useState(() =>
     parseInt(localStorage.getItem("vrcflow-processingTimeout") || "5", 10)
   );
+  const [speechPadMs, setSpeechPadMs] = useState(() =>
+    parseInt(localStorage.getItem("vrcflow-speechPadMs") || "600", 10)
+  );
   const [overlayEnabled, setOverlayEnabled] = useState(() =>
     localStorage.getItem("vrcflow-overlayEnabled") === "true"
   );
@@ -112,8 +115,6 @@ export default function App() {
   const overlayMessagesRef = useRef<Array<{ transcription: string; translation: string; expiresAt: number }>>([]);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const overlayVisibleRef = useRef(false);
-  const micVolumeRef = useRef(0);
-  const speakerVolumeRef = useRef(0);
   const entryIdRef = useRef(0);
 
 
@@ -155,6 +156,7 @@ export default function App() {
         translation: data.translation,
         timestamp: now.toISOString(),
         audioDuration: data.audioDuration,
+        processingTime: data.processingTime,
         isNoise,
         provider,
         model: activeModel,
@@ -328,6 +330,7 @@ export default function App() {
       targetLang: string;
       displayCurrency: string;
       processingTimeout: number;
+      speechPadMs: number;
     }) => {
       setProvider(settings.provider);
       setApiKey(settings.dashscopeKey);
@@ -338,6 +341,7 @@ export default function App() {
       setTargetLang(settings.targetLang);
       setDisplayCurrency(settings.displayCurrency);
       setProcessingTimeout(settings.processingTimeout);
+      setSpeechPadMs(settings.speechPadMs);
       localStorage.setItem("vrcflow-provider", settings.provider);
       localStorage.setItem("vrcflow-apiKey", settings.dashscopeKey);
       localStorage.setItem("vrcflow-openrouterKey", settings.openrouterKey);
@@ -347,6 +351,7 @@ export default function App() {
       localStorage.setItem("vrcflow-targetLang", settings.targetLang);
       localStorage.setItem("vrcflow-displayCurrency", settings.displayCurrency);
       localStorage.setItem("vrcflow-processingTimeout", String(settings.processingTimeout));
+      localStorage.setItem("vrcflow-speechPadMs", String(settings.speechPadMs));
     },
     []
   );
@@ -414,6 +419,7 @@ export default function App() {
           targetLang={targetLang}
           displayCurrency={displayCurrency}
           processingTimeout={processingTimeout}
+          speechPadMs={speechPadMs}
           overlayEnabled={overlayEnabled}
           onSave={saveSettings}
           onOverlayToggle={toggleOverlay}
@@ -430,7 +436,7 @@ export default function App() {
         sourceLang={sourceLang}
         targetLang={targetLang}
         timeoutSec={processingTimeout}
-        volumeRef={micVolumeRef}
+        speechPadMs={speechPadMs}
         onResult={handleResult}
         onError={handleError}
       />
@@ -442,15 +448,11 @@ export default function App() {
         sourceLang={sourceLang}
         targetLang={targetLang}
         timeoutSec={processingTimeout}
-        volumeRef={speakerVolumeRef}
+        speechPadMs={speechPadMs}
         onResult={handleSpeakerResult}
         onError={handleError}
       />
 
-      <VolumeBars
-        micVolumeRef={micVolumeRef}
-        speakerVolumeRef={speakerVolumeRef}
-      />
     </div>
   );
 }

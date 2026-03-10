@@ -19,6 +19,7 @@
   "settings.apiKeyRequired": "请在设置中填写 {{provider}} API Key 以开始使用。",
   "settings.model": "模型",
   "settings.viewDetail": "查看详情",
+  "settings.recommended": "推荐",
 
   "settings.aliyunTitle": "阿里云百炼",
   "settings.aliyunDesc": "通过 DashScope gummy-chat-v1 实时语音识别 + 翻译。低延迟，按音频时长计费。",
@@ -61,6 +62,9 @@
   "settings.advanced": "高级选项",
   "settings.processingTimeout": "处理超时",
   "settings.processingTimeoutDesc": "处理时间超过此值时丢弃结果。如果频繁超时，请适当增大此值。",
+  "settings.speechPadMs": "语音分段间隔",
+  "settings.speechPadMsDesc": "检测到静音后等待多久才结束当前语句。如果句子经常被拆分，请增大此值。",
+  "settings.openLogFile": "打开日志文件",
 
   "update.available": "发现新版本：v{{latest}}（当前：v{{current}}）",
   "update.download": "前往下载",

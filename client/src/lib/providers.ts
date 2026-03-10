@@ -1,13 +1,15 @@
 export interface ModelInfo {
   id: string;
   name: string;
+  recommended?: boolean;
   description: string;
   contextWindow: number;
   maxOutputTokens: number;
   pricing: {
     inputText: number;   // USD per 1M tokens
     outputText: number;  // USD per 1M tokens
-    inputAudio?: number; // USD per 1M tokens (if audio-capable)
+    inputAudio?: number; // USD per 1M tokens or 1M seconds (see audioPricingUnit)
+    audioPricingUnit?: "tokens" | "seconds"; // default: "tokens"
     outputAudio?: number;
   };
   notes: string[];
@@ -38,6 +40,27 @@ export const PROVIDERS: ProviderInfo[] = [
     keyPlaceholder: "sk-or-...",
     getKeyUrl: "https://openrouter.ai/keys",
     models: [
+      {
+        id: "mistralai/voxtral-small-24b-2507",
+        name: "Voxtral Small 24B",
+        recommended: true,
+        description: "Mistral's audio-capable model with state-of-the-art speech transcription, translation, and audio understanding. Retains best-in-class text performance.",
+        contextWindow: 32000,
+        maxOutputTokens: 8192,
+        pricing: {
+          inputText: 0.10,
+          outputText: 0.30,
+          inputAudio: 100,
+          audioPricingUnit: "seconds",
+        },
+        notes: [
+          "Supports tool use / function calling",
+          "Excels at speech transcription, translation, and audio understanding",
+          "Audio input at $100/1M seconds (~$0.006/min), text input at $0.10/1M tokens",
+          "Very low cost for short audio segments",
+        ],
+        audioFormats: ["wav", "mp3", "flac", "opus", "ogg"],
+      },
       {
         id: "google/gemini-3.1-flash-lite-preview",
         name: "Gemini 3.1 Flash Lite",

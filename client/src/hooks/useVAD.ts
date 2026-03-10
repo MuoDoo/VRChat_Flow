@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useMicVAD } from "@ricky0123/vad-react";
 import { encodeWAV } from "../lib/wav";
-import { startVolumeMonitor } from "../lib/volumeMonitor";
 
 interface UseVADOptions {
   provider: string;
@@ -10,7 +9,7 @@ interface UseVADOptions {
   sourceLang: string;
   targetLang: string;
   timeoutSec: number;
-  volumeRef?: React.MutableRefObject<number>;
+  speechPadMs: number;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -32,14 +31,11 @@ interface UseVADReturn {
 }
 
 export function useVAD(options: UseVADOptions): UseVADReturn {
-  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, volumeRef, onResult, onError } =
+  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, speechPadMs, onResult, onError } =
     options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
   const pendingRef = useRef<Float32Array | null>(null);
-  const volumeCleanupRef = useRef<(() => void) | null>(null);
-  const volumeRefStable = useRef(volumeRef);
-  volumeRefStable.current = volumeRef;
 
   // Refs to keep latest callbacks without re-triggering VAD re-init
   const onResultRef = useRef(onResult);
@@ -129,21 +125,7 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     positiveSpeechThreshold: 0.5,
     minSpeechMs: 150,
     preSpeechPadMs: 300,
-    redemptionMs: 250,
-    getStream: async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      // Set up volume monitoring
-      volumeCleanupRef.current?.();
-      if (volumeRefStable.current) {
-        volumeCleanupRef.current = startVolumeMonitor(
-          stream,
-          volumeRefStable.current
-        );
-      }
-      return stream;
-    },
+    redemptionMs: speechPadMs,
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },
@@ -165,17 +147,8 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
   }, [vad]);
 
   const stop = useCallback(async () => {
-    volumeCleanupRef.current?.();
-    volumeCleanupRef.current = null;
     await vad.pause();
   }, [vad]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      volumeCleanupRef.current?.();
-    };
-  }, []);
 
   return {
     start,

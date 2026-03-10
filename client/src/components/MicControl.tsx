@@ -8,7 +8,7 @@ interface MicControlProps {
   sourceLang: string;
   targetLang: string;
   timeoutSec: number;
-  volumeRef?: React.MutableRefObject<number>;
+  speechPadMs: number;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -27,7 +27,7 @@ export default function MicControl({
   sourceLang,
   targetLang,
   timeoutSec,
-  volumeRef,
+  speechPadMs,
   onResult,
   onError,
 }: MicControlProps) {
@@ -39,7 +39,7 @@ export default function MicControl({
     sourceLang,
     targetLang,
     timeoutSec,
-    volumeRef,
+    speechPadMs,
     onResult,
     onError,
   });

@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("osc:send", message, port),
   openExternal: (url: string) =>
     ipcRenderer.invoke("shell:openExternal", url),
+  openLogFile: () => ipcRenderer.invoke("log:openFile"),
   transcribe: (
     wavBuffer: ArrayBuffer,
     provider: string,

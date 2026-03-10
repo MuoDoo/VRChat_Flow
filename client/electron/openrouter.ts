@@ -26,7 +26,7 @@ export async function transcribeAudioOpenRouter(
     },
     body: JSON.stringify({
       model,
-      reasoning: { effort: "none" },
+      ...(model.startsWith("google/") ? { reasoning: { enabled: false } } : {}),
       messages: [
         {
           role: "user",
@@ -60,7 +60,7 @@ export async function transcribeAudioOpenRouter(
               required: ["transcription", "translation"],
             },
           },
-        },
+        }
       ],
       tool_choice: {
         type: "function",

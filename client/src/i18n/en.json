@@ -19,6 +19,7 @@
   "settings.apiKeyRequired": "Please set your {{provider}} API Key in Settings to get started.",
   "settings.model": "Model",
   "settings.viewDetail": "View details",
+  "settings.recommended": "Recommended",
 
   "settings.aliyunTitle": "Aliyun DashScope",
   "settings.aliyunDesc": "Real-time ASR + translation via DashScope gummy-chat-v1. Low latency, billed by audio duration.",
@@ -61,6 +62,9 @@
   "settings.advanced": "Advanced",
   "settings.processingTimeout": "Processing Timeout",
   "settings.processingTimeoutDesc": "Discard results if processing takes longer than this. Increase if you experience frequent timeouts.",
+  "settings.speechPadMs": "Speech Padding",
+  "settings.speechPadMsDesc": "How long to wait after silence before ending a speech segment. Increase if your sentences are being split too early.",
+  "settings.openLogFile": "Open Log File",
 
   "update.available": "New version available: v{{latest}} (current: v{{current}})",
   "update.download": "Download",

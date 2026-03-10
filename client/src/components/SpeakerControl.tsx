@@ -8,7 +8,7 @@ interface SpeakerControlProps {
   sourceLang: string;
   targetLang: string;
   timeoutSec: number;
-  volumeRef?: React.MutableRefObject<number>;
+  speechPadMs: number;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -27,7 +27,7 @@ export default function SpeakerControl({
   sourceLang,
   targetLang,
   timeoutSec,
-  volumeRef,
+  speechPadMs,
   onResult,
   onError,
 }: SpeakerControlProps) {
@@ -41,7 +41,7 @@ export default function SpeakerControl({
       sourceLang: targetLang,
       targetLang: sourceLang,
       timeoutSec,
-      volumeRef,
+      speechPadMs,
       onResult,
       onError,
     });
