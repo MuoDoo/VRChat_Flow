@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 interface SettingsProps {
@@ -6,7 +6,9 @@ interface SettingsProps {
   oscPort: number;
   sourceLang: string;
   targetLang: string;
+  overlayEnabled: boolean;
   onSave: (apiKey: string, port: number, src: string, tgt: string) => void;
+  onOverlayToggle: (enabled: boolean) => void;
   onClose: () => void;
 }
 
@@ -15,7 +17,9 @@ export default function Settings({
   oscPort: initPort,
   sourceLang: initSrc,
   targetLang: initTgt,
+  overlayEnabled,
   onSave,
+  onOverlayToggle,
   onClose,
 }: SettingsProps) {
   const { t } = useTranslation();
@@ -23,6 +27,29 @@ export default function Settings({
   const [port, setPort] = useState(String(initPort));
   const [src, setSrc] = useState(initSrc);
   const [tgt, setTgt] = useState(initTgt);
+  const [defaultInput, setDefaultInput] = useState("");
+  const [defaultOutput, setDefaultOutput] = useState("");
+
+  const refreshDevices = async () => {
+    try {
+      const devs = await navigator.mediaDevices.enumerateDevices();
+      const input = devs.find(
+        (d) => d.kind === "audioinput" && d.deviceId === "default"
+      );
+      const output = devs.find(
+        (d) => d.kind === "audiooutput" && d.deviceId === "default"
+      );
+      setDefaultInput(input?.label || devs.find((d) => d.kind === "audioinput")?.label || "--");
+      setDefaultOutput(output?.label || devs.find((d) => d.kind === "audiooutput")?.label || "--");
+    } catch {
+      setDefaultInput("--");
+      setDefaultOutput("--");
+    }
+  };
+
+  useEffect(() => {
+    refreshDevices();
+  }, []);
 
   const handleSave = () => {
     onSave(key.trim(), parseInt(port, 10) || 9000, src, tgt);
@@ -79,6 +106,44 @@ export default function Settings({
           <option value="ko">Korean</option>
         </select>
 
+        <div style={styles.separator} />
+
+        <label style={styles.label}>{t("settings.overlay")}</label>
+        <div style={styles.toggleRow}>
+          <span style={{ fontSize: "13px", color: "#ccc" }}>
+            {t("settings.overlayDesc")}
+          </span>
+          <button
+            onClick={() => onOverlayToggle(!overlayEnabled)}
+            style={{
+              ...styles.toggleBtn,
+              backgroundColor: overlayEnabled ? "#27ae60" : "#555",
+            }}
+          >
+            {overlayEnabled ? "ON" : "OFF"}
+          </button>
+        </div>
+
+        <div style={styles.separator} />
+
+        <div style={styles.devicesHeader}>
+          <label style={styles.label}>{t("settings.devices")}</label>
+          <button onClick={refreshDevices} style={styles.refreshBtn}>
+            {t("settings.refreshDevices")}
+          </button>
+        </div>
+
+        <div style={styles.deviceSection}>
+          <div style={styles.deviceRow}>
+            <span style={styles.deviceKind}>{t("settings.inputDevices")}</span>
+            <span style={styles.deviceName}>{defaultInput}</span>
+          </div>
+          <div style={styles.deviceRow}>
+            <span style={styles.deviceKind}>{t("settings.outputDevices")}</span>
+            <span style={styles.deviceName}>{defaultOutput}</span>
+          </div>
+        </div>
+
         <div style={styles.buttons}>
           <button onClick={handleSave} style={styles.saveBtn}>
             {t("settings.title")}
@@ -110,6 +175,8 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "8px",
     padding: "24px",
     width: "320px",
+    maxHeight: "90vh",
+    overflowY: "auto",
     display: "flex",
     flexDirection: "column",
     gap: "8px",
@@ -164,5 +231,63 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#aaa",
     cursor: "pointer",
     fontSize: "16px",
+  },
+  separator: {
+    borderTop: "1px solid #333",
+    marginTop: "8px",
+    paddingTop: "4px",
+  },
+  toggleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+  },
+  toggleBtn: {
+    padding: "4px 12px",
+    borderRadius: "4px",
+    border: "none",
+    color: "#fff",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    minWidth: "40px",
+  },
+  devicesHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  refreshBtn: {
+    padding: "2px 8px",
+    borderRadius: "3px",
+    border: "1px solid #444",
+    backgroundColor: "transparent",
+    color: "#888",
+    fontSize: "11px",
+    cursor: "pointer",
+  },
+  deviceSection: {
+    backgroundColor: "#1a1a2e",
+    borderRadius: "4px",
+    padding: "8px 10px",
+    fontSize: "12px",
+  },
+  deviceRow: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: "8px",
+    padding: "3px 0",
+  },
+  deviceKind: {
+    fontSize: "11px",
+    color: "#666",
+    flexShrink: 0,
+    minWidth: "28px",
+  },
+  deviceName: {
+    fontSize: "12px",
+    color: "#bbb",
+    wordBreak: "break-word",
   },
 };

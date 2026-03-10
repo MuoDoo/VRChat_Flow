@@ -1,9 +1,36 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  desktopCapturer,
+  ipcMain,
+  session,
+  shell,
+} from "electron";
 import path from "node:path";
 import { sendChatbox } from "./osc";
 import { transcribeAudio } from "./dashscope";
+import {
+  initOverlay,
+  updateOverlayImage,
+  showOverlay,
+  hideOverlay,
+  shutdownOverlay,
+} from "./overlay";
 
 process.env.DIST = path.join(__dirname, "../dist");
+
+// Enable system audio loopback capture (platform-specific flags)
+if (process.platform === "darwin") {
+  app.commandLine.appendSwitch(
+    "enable-features",
+    "MacLoopbackAudioForScreenShare,MacCatapSystemAudioLoopbackCapture"
+  );
+} else if (process.platform === "linux") {
+  app.commandLine.appendSwitch(
+    "enable-features",
+    "PulseaudioLoopbackForScreenShare"
+  );
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -31,6 +58,15 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Auto-grant loopback audio for speaker capture (no picker dialog)
+  session.defaultSession.setDisplayMediaRequestHandler(
+    (_request, callback) => {
+      desktopCapturer.getSources({ types: ["screen"] }).then((sources) => {
+        callback({ video: sources[0], audio: "loopback" });
+      });
+    }
+  );
+
   createWindow();
 
   ipcMain.handle("osc:send", (_event, message: string, port: number) => {
@@ -55,11 +91,36 @@ app.whenReady().then(() => {
     }
   );
 
+  // SteamVR Overlay IPC handlers
+  ipcMain.handle("overlay:init", () => {
+    return initOverlay();
+  });
+
+  ipcMain.handle(
+    "overlay:update",
+    (_event, rgbaBuffer: ArrayBuffer, width: number, height: number) => {
+      return updateOverlayImage(Buffer.from(rgbaBuffer), width, height);
+    }
+  );
+
+  ipcMain.handle("overlay:show", () => {
+    return showOverlay();
+  });
+
+  ipcMain.handle("overlay:hide", () => {
+    return hideOverlay();
+  });
+
+  ipcMain.handle("overlay:shutdown", () => {
+    shutdownOverlay();
+  });
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on("window-all-closed", () => {
+  shutdownOverlay();
   if (process.platform !== "darwin") app.quit();
 });

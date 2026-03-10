@@ -11,3 +11,4 @@ __pycache__/
 .server.pid
 .server.log
 .playwright-mcp/
+.claude/

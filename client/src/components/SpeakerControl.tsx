@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { useVAD } from "../hooks/useVAD";
+import { useSpeakerVAD } from "../hooks/useSpeakerVAD";
 
-interface MicControlProps {
+interface SpeakerControlProps {
   apiKey: string;
   sourceLang: string;
   targetLang: string;
@@ -14,33 +14,35 @@ interface MicControlProps {
   onError: (error: string) => void;
 }
 
-export default function MicControl({
+export default function SpeakerControl({
   apiKey,
   sourceLang,
   targetLang,
   volumeRef,
   onResult,
   onError,
-}: MicControlProps) {
+}: SpeakerControlProps) {
   const { t } = useTranslation();
-  const { start, stop, isListening, isProcessing, vadLoading, vadError } = useVAD({
-    apiKey,
-    sourceLang,
-    targetLang,
-    volumeRef,
-    onResult,
-    onError,
-  });
+  const { start, stop, isListening, isProcessing, vadLoading, vadError } =
+    useSpeakerVAD({
+      apiKey,
+      // Speaker capture translates others' speech — reverse the language pair
+      sourceLang: targetLang,
+      targetLang: sourceLang,
+      volumeRef,
+      onResult,
+      onError,
+    });
 
   const status = vadError
     ? String(vadError)
     : vadLoading
       ? "Loading VAD..."
       : isProcessing
-        ? t("mic.status.processing")
+        ? t("speaker.status.processing")
         : isListening
-          ? t("mic.status.listening")
-          : t("mic.status.idle");
+          ? t("speaker.status.listening")
+          : t("speaker.status.idle");
 
   const disabled = vadLoading || !!vadError || !apiKey;
 
@@ -58,17 +60,29 @@ export default function MicControl({
             ? "#555"
             : isListening
               ? "#c0392b"
-              : "#27ae60",
+              : "#2980b9",
           cursor: disabled ? "not-allowed" : "pointer",
         }}
       >
-        {isListening ? t("mic.stop") : t("mic.start")}
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          style={{ marginRight: "6px", verticalAlign: "middle" }}
+        >
+          <path d="M11.536 14.01A8.47 8.47 0 0014.026 8a8.47 8.47 0 00-2.49-6.01l-.708.707A7.48 7.48 0 0113.026 8c0 2.071-.84 3.946-2.198 5.303l.708.707z" />
+          <path d="M10.121 12.596A6.48 6.48 0 0012.026 8a6.48 6.48 0 00-1.905-4.596l-.707.707A5.48 5.48 0 0111.026 8a5.48 5.48 0 01-1.612 3.889l.707.707z" />
+          <path d="M8.707 11.182A4.49 4.49 0 0010.026 8a4.49 4.49 0 00-1.319-3.182l-.707.707A3.49 3.49 0 019.026 8a3.49 3.49 0 01-1.026 2.475l.707.707z" />
+          <path d="M6.717 3.55A.5.5 0 017 4v8a.5.5 0 01-.812.39L3.825 10.5H1.5A.5.5 0 011 10V6a.5.5 0 01.5-.5h2.325l2.363-1.89a.5.5 0 01.529-.06z" />
+        </svg>
+        {isListening ? t("speaker.stop") : t("speaker.start")}
       </button>
       {isListening && (
         <div
           style={{
             ...styles.indicator,
-            backgroundColor: isProcessing ? "#e67e22" : "#27ae60",
+            backgroundColor: isProcessing ? "#e67e22" : "#2980b9",
           }}
         />
       )}
@@ -82,8 +96,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: "12px",
-    padding: "16px",
-    borderTop: "1px solid #2a2a4a",
+    padding: "8px 16px 16px",
   },
   status: {
     fontSize: "13px",
@@ -91,13 +104,15 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "right",
   },
   button: {
-    padding: "12px 32px",
+    padding: "10px 24px",
     borderRadius: "24px",
     border: "none",
     color: "#fff",
-    fontSize: "16px",
+    fontSize: "14px",
     fontWeight: 600,
     transition: "background-color 0.2s",
+    display: "flex",
+    alignItems: "center",
   },
   indicator: {
     width: "10px",

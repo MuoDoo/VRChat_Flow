@@ -6,6 +6,9 @@ directories:
 files:
   - dist
   - dist-electron
+extraResources:
+  - from: resources/openvr_api.dll
+    to: openvr_api.dll
 win:
   target:
     - target: nsis

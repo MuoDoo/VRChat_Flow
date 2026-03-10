@@ -3,7 +3,7 @@ import { useMicVAD } from "@ricky0123/vad-react";
 import { encodeWAV } from "../lib/wav";
 import { startVolumeMonitor } from "../lib/volumeMonitor";
 
-interface UseVADOptions {
+interface UseSpeakerVADOptions {
   apiKey: string;
   sourceLang: string;
   targetLang: string;
@@ -16,7 +16,7 @@ interface UseVADOptions {
   onError: (error: string) => void;
 }
 
-interface UseVADReturn {
+interface UseSpeakerVADReturn {
   start: () => void;
   stop: () => void;
   isListening: boolean;
@@ -25,7 +25,22 @@ interface UseVADReturn {
   vadError: string | false;
 }
 
-export function useVAD(options: UseVADOptions): UseVADReturn {
+async function acquireLoopbackStream(): Promise<MediaStream> {
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: true,
+    audio: true,
+  });
+  // Remove video tracks — we only need system audio loopback
+  stream.getVideoTracks().forEach((t) => {
+    t.stop();
+    stream.removeTrack(t);
+  });
+  return stream;
+}
+
+export function useSpeakerVAD(
+  options: UseSpeakerVADOptions
+): UseSpeakerVADReturn {
   const { apiKey, sourceLang, targetLang, volumeRef, onResult, onError } =
     options;
   const [isProcessing, setIsProcessing] = useState(false);
@@ -35,7 +50,6 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
   const volumeRefStable = useRef(volumeRef);
   volumeRefStable.current = volumeRef;
 
-  // Refs to keep latest callbacks without re-triggering VAD re-init
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
   useEffect(() => {
@@ -79,7 +93,6 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
   const processQueue = useCallback(
     async (audio: Float32Array) => {
       if (inflightRef.current) {
-        // Keep only the latest pending segment, discard older ones
         pendingRef.current = audio;
         return;
       }
@@ -90,13 +103,12 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
       try {
         await uploadAudio(audio);
       } catch (e) {
-        console.error("Transcribe error:", e);
+        console.error("Speaker transcribe error:", e);
         onErrorRef.current("transcribeFailed");
       }
 
       inflightRef.current = false;
 
-      // Process pending segment if any
       const pending = pendingRef.current;
       pendingRef.current = null;
       if (pending) {
@@ -108,6 +120,19 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     [uploadAudio]
   );
 
+  const getStreamWithMonitor = useCallback(async () => {
+    const stream = await acquireLoopbackStream();
+    // Set up volume monitoring
+    volumeCleanupRef.current?.();
+    if (volumeRefStable.current) {
+      volumeCleanupRef.current = startVolumeMonitor(
+        stream,
+        volumeRefStable.current
+      );
+    }
+    return stream;
+  }, []);
+
   const vad = useMicVAD({
     startOnLoad: false,
     model: "legacy",
@@ -117,20 +142,7 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     minSpeechMs: 150,
     preSpeechPadMs: 300,
     redemptionMs: 250,
-    getStream: async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      // Set up volume monitoring
-      volumeCleanupRef.current?.();
-      if (volumeRefStable.current) {
-        volumeCleanupRef.current = startVolumeMonitor(
-          stream,
-          volumeRefStable.current
-        );
-      }
-      return stream;
-    },
+    getStream: getStreamWithMonitor,
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },
@@ -141,11 +153,11 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
 
   const start = useCallback(async () => {
     if (vad.loading) {
-      console.warn("VAD still loading, cannot start yet");
+      console.warn("Speaker VAD still loading");
       return;
     }
     if (vad.errored) {
-      console.error("VAD errored:", vad.errored);
+      console.error("Speaker VAD errored:", vad.errored);
       return;
     }
     await vad.start();

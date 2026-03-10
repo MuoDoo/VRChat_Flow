@@ -72,7 +72,7 @@ export default defineConfig({
           build: {
             outDir: "dist-electron",
             rollupOptions: {
-              external: ["electron", "electron-store", "dgram", "ws"],
+              external: ["electron", "electron-store", "dgram", "ws", "koffi"],
             },
           },
         },
