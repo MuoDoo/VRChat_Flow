@@ -26,6 +26,7 @@ export async function transcribeAudioOpenRouter(
     },
     body: JSON.stringify({
       model,
+      reasoning: { effort: "none" },
       messages: [
         {
           role: "user",
