@@ -1,44 +1,65 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { PROVIDERS, type ModelInfo } from "../lib/providers";
 
 interface SettingsProps {
-  apiKey: string;
+  provider: string;
+  dashscopeKey: string;
+  openrouterKey: string;
+  openrouterModel: string;
   oscPort: number;
   sourceLang: string;
   targetLang: string;
+  displayCurrency: string;
   overlayEnabled: boolean;
-  onSave: (apiKey: string, port: number, src: string, tgt: string) => void;
+  onSave: (settings: {
+    provider: string;
+    dashscopeKey: string;
+    openrouterKey: string;
+    openrouterModel: string;
+    oscPort: number;
+    sourceLang: string;
+    targetLang: string;
+    displayCurrency: string;
+  }) => void;
   onOverlayToggle: (enabled: boolean) => void;
   onClose: () => void;
 }
 
 export default function Settings({
-  apiKey: initKey,
+  provider: initProvider,
+  dashscopeKey: initDashscopeKey,
+  openrouterKey: initOpenrouterKey,
+  openrouterModel: initOpenrouterModel,
   oscPort: initPort,
   sourceLang: initSrc,
   targetLang: initTgt,
+  displayCurrency: initCurrency,
   overlayEnabled,
   onSave,
   onOverlayToggle,
   onClose,
 }: SettingsProps) {
   const { t } = useTranslation();
-  const [key, setKey] = useState(initKey);
+  const [activeTab, setActiveTab] = useState<"general" | "provider">("provider");
+  const [providerSelection, setProviderSelection] = useState(initProvider);
+  const [dashscopeKey, setDashscopeKey] = useState(initDashscopeKey);
+  const [openrouterKey, setOpenrouterKey] = useState(initOpenrouterKey);
+  const [openrouterModel, setOpenrouterModel] = useState(initOpenrouterModel);
   const [port, setPort] = useState(String(initPort));
   const [src, setSrc] = useState(initSrc);
   const [tgt, setTgt] = useState(initTgt);
+  const [currency, setCurrency] = useState(initCurrency);
+  const [modelDetailId, setModelDetailId] = useState<string | null>(null);
+  const [showDashscopeHelp, setShowDashscopeHelp] = useState(false);
   const [defaultInput, setDefaultInput] = useState("");
   const [defaultOutput, setDefaultOutput] = useState("");
 
   const refreshDevices = async () => {
     try {
       const devs = await navigator.mediaDevices.enumerateDevices();
-      const input = devs.find(
-        (d) => d.kind === "audioinput" && d.deviceId === "default"
-      );
-      const output = devs.find(
-        (d) => d.kind === "audiooutput" && d.deviceId === "default"
-      );
+      const input = devs.find((d) => d.kind === "audioinput" && d.deviceId === "default");
+      const output = devs.find((d) => d.kind === "audiooutput" && d.deviceId === "default");
       setDefaultInput(input?.label || devs.find((d) => d.kind === "audioinput")?.label || "--");
       setDefaultOutput(output?.label || devs.find((d) => d.kind === "audiooutput")?.label || "--");
     } catch {
@@ -52,108 +73,498 @@ export default function Settings({
   }, []);
 
   const handleSave = () => {
-    onSave(key.trim(), parseInt(port, 10) || 9000, src, tgt);
+    onSave({
+      provider: providerSelection,
+      dashscopeKey: dashscopeKey.trim(),
+      openrouterKey: openrouterKey.trim(),
+      openrouterModel,
+      oscPort: parseInt(port, 10) || 9000,
+      sourceLang: src,
+      targetLang: tgt,
+      displayCurrency: currency,
+    });
     onClose();
   };
+
+  const openrouterProvider = PROVIDERS.find((p) => p.id === "openrouter");
+  const models = openrouterProvider?.models || [];
+
+  // Show model detail view
+  if (modelDetailId) {
+    const model = models.find((m) => m.id === modelDetailId);
+    if (model) {
+      return (
+        <div style={styles.overlay}>
+          <div style={styles.panel}>
+            <ModelDetail model={model} onBack={() => setModelDetailId(null)} />
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Show DashScope help view
+  if (showDashscopeHelp) {
+    return (
+      <div style={styles.overlay}>
+        <div style={styles.panel}>
+          <DashScopeHelp onBack={() => setShowDashscopeHelp(false)} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.overlay}>
       <div style={styles.panel}>
-        <h3 style={styles.title}>{t("settings.title")}</h3>
-
-        <label style={styles.label}>{t("settings.apiKey")}</label>
-        <input
-          style={styles.input}
-          type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder={t("settings.apiKeyPlaceholder")}
-        />
-        <div style={styles.hint}>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.electronAPI?.openExternal("https://bailian.console.aliyun.com/cn-beijing/?apiKey=1&tab=model#/api-key");
-            }}
-            style={styles.link}
-          >
-            {t("settings.getApiKey")}
-          </a>
+        <div style={styles.header}>
+          <h3 style={styles.title}>{t("settings.title")}</h3>
+          <button onClick={onClose} style={styles.closeBtn}>&times;</button>
         </div>
 
-        <label style={styles.label}>{t("settings.oscPort")}</label>
-        <input
-          style={styles.input}
-          type="number"
-          value={port}
-          onChange={(e) => setPort(e.target.value)}
-        />
-
-        <label style={styles.label}>{t("settings.sourceLang")}</label>
-        <select style={styles.input} value={src} onChange={(e) => setSrc(e.target.value)}>
-          <option value="zh">Chinese</option>
-          <option value="en">English</option>
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-        </select>
-
-        <label style={styles.label}>{t("settings.targetLang")}</label>
-        <select style={styles.input} value={tgt} onChange={(e) => setTgt(e.target.value)}>
-          <option value="en">English</option>
-          <option value="zh">Chinese</option>
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-        </select>
-
-        <div style={styles.separator} />
-
-        <label style={styles.label}>{t("settings.overlay")}</label>
-        <div style={styles.toggleRow}>
-          <span style={{ fontSize: "13px", color: "#ccc" }}>
-            {t("settings.overlayDesc")}
-          </span>
+        {/* Tab bar */}
+        <div style={styles.tabBar}>
           <button
-            onClick={() => onOverlayToggle(!overlayEnabled)}
+            onClick={() => setActiveTab("provider")}
             style={{
-              ...styles.toggleBtn,
-              backgroundColor: overlayEnabled ? "#27ae60" : "#555",
+              ...styles.tab,
+              borderBottomColor: activeTab === "provider" ? "#6c8ebf" : "transparent",
+              color: activeTab === "provider" ? "#fff" : "#888",
             }}
           >
-            {overlayEnabled ? "ON" : "OFF"}
+            {t("settings.providerTab")}
+          </button>
+          <button
+            onClick={() => setActiveTab("general")}
+            style={{
+              ...styles.tab,
+              borderBottomColor: activeTab === "general" ? "#6c8ebf" : "transparent",
+              color: activeTab === "general" ? "#fff" : "#888",
+            }}
+          >
+            {t("settings.generalTab")}
           </button>
         </div>
 
-        <div style={styles.separator} />
+        {activeTab === "provider" && (
+          <div style={styles.tabContent}>
+            {/* Provider selector */}
+            <div style={styles.providerSelector}>
+              {PROVIDERS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setProviderSelection(p.id)}
+                  style={{
+                    ...styles.providerBtn,
+                    backgroundColor: providerSelection === p.id ? "#4a4a8a" : "#2a2a4a",
+                    borderColor: providerSelection === p.id ? "#6c8ebf" : "#444",
+                  }}
+                >
+                  <div style={styles.providerBtnName}>{p.name}</div>
+                  {providerSelection === p.id && (
+                    <div style={styles.activeBadge}>{t("settings.active")}</div>
+                  )}
+                </button>
+              ))}
+            </div>
 
-        <div style={styles.devicesHeader}>
-          <label style={styles.label}>{t("settings.devices")}</label>
-          <button onClick={refreshDevices} style={styles.refreshBtn}>
-            {t("settings.refreshDevices")}
-          </button>
-        </div>
+            {/* DashScope section */}
+            {providerSelection === "dashscope" && (
+              <div style={styles.providerSection}>
+                <div style={styles.sectionTitle}>{t("settings.aliyunTitle")}</div>
+                <div style={styles.sectionDesc}>{t("settings.aliyunDesc")}</div>
+                <div style={styles.regionWarning}>{t("settings.aliyunRegionNote")}</div>
 
-        <div style={styles.deviceSection}>
-          <div style={styles.deviceRow}>
-            <span style={styles.deviceKind}>{t("settings.inputDevices")}</span>
-            <span style={styles.deviceName}>{defaultInput}</span>
+                <label style={styles.label}>{t("settings.apiKey")}</label>
+                <input
+                  style={styles.input}
+                  type="password"
+                  value={dashscopeKey}
+                  onChange={(e) => setDashscopeKey(e.target.value)}
+                  placeholder="sk-..."
+                />
+                <div style={styles.hint}>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.electronAPI?.openExternal(
+                        "https://bailian.console.aliyun.com/cn-beijing/?apiKey=1&tab=model#/api-key"
+                      );
+                    }}
+                    style={styles.link}
+                  >
+                    {t("settings.getApiKeyAliyun")}
+                  </a>
+                </div>
+
+                {/* DashScope pricing info */}
+                <div style={styles.pricingCard}>
+                  <div style={styles.pricingRow}>
+                    <span style={styles.pricingLabel}>gummy-chat-v1</span>
+                    <span style={styles.pricingValue}>¥0.00015/s</span>
+                  </div>
+                  <div style={styles.pricingNote}>{t("settings.aliyunBillingNote")}</div>
+                  <button
+                    onClick={() => setShowDashscopeHelp(true)}
+                    style={styles.helpLink}
+                  >
+                    {t("settings.viewDetail")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* OpenRouter section */}
+            {providerSelection === "openrouter" && (
+              <div style={styles.providerSection}>
+                <div style={styles.sectionTitle}>{t("settings.openrouterTitle")}</div>
+                <div style={styles.sectionDesc}>{t("settings.openrouterDesc")}</div>
+                <div style={styles.regionWarning}>{t("settings.openrouterRegionNote")}</div>
+
+                <label style={styles.label}>{t("settings.apiKey")}</label>
+                <input
+                  style={styles.input}
+                  type="password"
+                  value={openrouterKey}
+                  onChange={(e) => setOpenrouterKey(e.target.value)}
+                  placeholder="sk-or-..."
+                />
+                <div style={styles.hint}>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.electronAPI?.openExternal("https://openrouter.ai/keys");
+                    }}
+                    style={styles.link}
+                  >
+                    {t("settings.getApiKeyOpenRouter")}
+                  </a>
+                </div>
+
+                {/* Model selection */}
+                <label style={styles.label}>{t("settings.model")}</label>
+                <div style={styles.modelList}>
+                  {models.map((model) => {
+                    const selected = openrouterModel === model.id;
+                    return (
+                    <div
+                      key={model.id}
+                      onClick={() => setOpenrouterModel(model.id)}
+                      className={selected ? "rainbow-border" : ""}
+                      style={{
+                        ...styles.modelCard,
+                        borderColor: selected ? "transparent" : "#444",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={styles.modelCardHeader}>
+                        <div>
+                          <div style={styles.modelName}>{model.name}</div>
+                          <div style={styles.modelId}>{model.id}</div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setModelDetailId(model.id); }}
+                          style={styles.modelDetailBtn}
+                          title={t("settings.viewDetail")}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 00-2 0v.5a.75.75 0 001.5 0V5zm-.25 4a.75.75 0 00-1.5 0v3a.75.75 0 001.5 0V9z" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div style={styles.modelPriceRow}>
+                        <span style={styles.modelPriceLabel}>Input</span>
+                        <span style={styles.modelPriceValue}>
+                          ${model.pricing.inputAudio ?? model.pricing.inputText}/1M tokens
+                        </span>
+                      </div>
+                      <div style={styles.modelPriceRow}>
+                        <span style={styles.modelPriceLabel}>Output</span>
+                        <span style={styles.modelPriceValue}>
+                          ${model.pricing.outputText}/1M tokens
+                        </span>
+                      </div>
+                      <div style={styles.modelPriceRow}>
+                        <span style={styles.modelPriceLabel}>Context</span>
+                        <span style={styles.modelPriceValue}>
+                          {(model.contextWindow / 1000).toFixed(0)}K
+                        </span>
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-          <div style={styles.deviceRow}>
-            <span style={styles.deviceKind}>{t("settings.outputDevices")}</span>
-            <span style={styles.deviceName}>{defaultOutput}</span>
+        )}
+
+        {activeTab === "general" && (
+          <div style={styles.tabContent}>
+            <label style={styles.label}>{t("settings.sourceLang")}</label>
+            <select style={styles.input} value={src} onChange={(e) => setSrc(e.target.value)}>
+              <option value="zh">Chinese</option>
+              <option value="en">English</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+            </select>
+
+            <label style={styles.label}>{t("settings.targetLang")}</label>
+            <select style={styles.input} value={tgt} onChange={(e) => setTgt(e.target.value)}>
+              <option value="en">English</option>
+              <option value="zh">Chinese</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+            </select>
+
+            <label style={styles.label}>{t("settings.displayCurrency")}</label>
+            <select style={styles.input} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              <option value="CNY">CNY (¥)</option>
+              <option value="USD">USD ($)</option>
+              <option value="JPY">JPY (¥)</option>
+            </select>
+
+            <label style={styles.label}>{t("settings.oscPort")}</label>
+            <input
+              style={styles.input}
+              type="number"
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+            />
+
+            <div style={styles.separator} />
+
+            <label style={styles.label}>{t("settings.overlay")}</label>
+            <div style={styles.toggleRow}>
+              <span style={{ fontSize: "13px", color: "#ccc" }}>
+                {t("settings.overlayDesc")}
+              </span>
+              <button
+                onClick={() => onOverlayToggle(!overlayEnabled)}
+                style={{
+                  ...styles.toggleBtn,
+                  backgroundColor: overlayEnabled ? "#27ae60" : "#555",
+                }}
+              >
+                {overlayEnabled ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            <div style={styles.separator} />
+
+            <div style={styles.devicesHeader}>
+              <label style={styles.label}>{t("settings.devices")}</label>
+              <button onClick={refreshDevices} style={styles.refreshBtn}>
+                {t("settings.refreshDevices")}
+              </button>
+            </div>
+            <div style={styles.deviceSection}>
+              <div style={styles.deviceRow}>
+                <span style={styles.deviceKind}>{t("settings.inputDevices")}</span>
+                <span style={styles.deviceName}>{defaultInput}</span>
+              </div>
+              <div style={styles.deviceRow}>
+                <span style={styles.deviceKind}>{t("settings.outputDevices")}</span>
+                <span style={styles.deviceName}>{defaultOutput}</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div style={styles.buttons}>
           <button onClick={handleSave} style={styles.saveBtn}>
-            {t("settings.title")}
-          </button>
-          <button onClick={onClose} style={styles.cancelBtn}>
-            &times;
+            {t("settings.save")}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+/** Model detail page showing pricing, notes, and usage info */
+function ModelDetail({ model, onBack }: { model: ModelInfo; onBack: () => void }) {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <div style={styles.header}>
+        <button onClick={onBack} style={styles.backBtn}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: "4px" }}>
+            <path d="M11 1L4 8l7 7" stroke="currentColor" strokeWidth="2" fill="none" />
+          </svg>
+          {t("settings.back")}
+        </button>
+      </div>
+
+      <div style={styles.modelDetailHeader}>
+        <h3 style={{ margin: 0, fontSize: "16px", color: "#fff" }}>{model.name}</h3>
+        <div style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>{model.id}</div>
+      </div>
+
+      <div style={{ fontSize: "13px", color: "#ccc", lineHeight: "1.5" }}>
+        {model.description}
+      </div>
+
+      {/* Specs */}
+      <div style={styles.pricingCard}>
+        <div style={styles.pricingTitle}>{t("settings.specs")}</div>
+        <div style={styles.specRow}>
+          <span style={styles.pricingLabel}>{t("settings.contextWindow")}</span>
+          <span style={styles.specValue}>{(model.contextWindow / 1000).toFixed(0)}K tokens</span>
+        </div>
+        <div style={styles.specRow}>
+          <span style={styles.pricingLabel}>{t("settings.maxOutput")}</span>
+          <span style={styles.specValue}>{(model.maxOutputTokens / 1000).toFixed(0)}K tokens</span>
+        </div>
+        <div style={styles.specRow}>
+          <span style={styles.pricingLabel}>{t("settings.supportedFormats")}</span>
+          <span style={styles.specValue}>{model.audioFormats.join(", ")}</span>
+        </div>
+      </div>
+
+      {/* Pricing table */}
+      <div style={styles.pricingCard}>
+        <div style={styles.pricingTitle}>{t("settings.pricingInfo")}</div>
+        <table style={styles.pricingTable}>
+          <thead>
+            <tr>
+              <th style={styles.pricingTh}>{t("settings.pricingType")}</th>
+              <th style={{ ...styles.pricingTh, textAlign: "right" }}>{t("settings.pricingRate")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={styles.pricingTd}>Text Input</td>
+              <td style={{ ...styles.pricingTd, textAlign: "right" }}>${model.pricing.inputText}/1M tokens</td>
+            </tr>
+            <tr>
+              <td style={styles.pricingTd}>Text Output</td>
+              <td style={{ ...styles.pricingTd, textAlign: "right" }}>${model.pricing.outputText}/1M tokens</td>
+            </tr>
+            {model.pricing.inputAudio != null && (
+              <tr>
+                <td style={styles.pricingTd}>Audio Input</td>
+                <td style={{ ...styles.pricingTd, textAlign: "right" }}>
+                  ${model.pricing.inputAudio}/1M tokens
+                </td>
+              </tr>
+            )}
+            {model.pricing.outputAudio != null && (
+              <tr>
+                <td style={styles.pricingTd}>Audio Output</td>
+                <td style={{ ...styles.pricingTd, textAlign: "right" }}>${model.pricing.outputAudio}/1M tokens</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Cost estimation */}
+      <div style={styles.pricingCard}>
+        <div style={styles.pricingTitle}>{t("settings.costEstimate")}</div>
+        <div style={styles.estimateRow}>
+          <span style={styles.pricingLabel}>{t("settings.costPer1Min")}</span>
+          <span style={styles.estimateValue}>
+            ~${((1500 * (model.pricing.inputAudio ?? model.pricing.inputText) + 100 * model.pricing.outputText) / 1_000_000).toFixed(4)}
+          </span>
+        </div>
+        <div style={styles.estimateRow}>
+          <span style={styles.pricingLabel}>{t("settings.costPer1Hour")}</span>
+          <span style={styles.estimateValue}>
+            ~${((1500 * 60 * (model.pricing.inputAudio ?? model.pricing.inputText) + 100 * 60 * model.pricing.outputText) / 1_000_000).toFixed(2)}
+          </span>
+        </div>
+        <div style={styles.pricingNote}>{t("settings.costEstimateNote")}</div>
+      </div>
+
+      {/* Notes */}
+      <div style={styles.pricingCard}>
+        <div style={styles.pricingTitle}>{t("settings.notes")}</div>
+        <ul style={styles.notesList}>
+          {model.notes.map((note, i) => (
+            <li key={i} style={styles.noteItem}>{note}</li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Link to OpenRouter model page */}
+      <div style={{ marginTop: "4px" }}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            window.electronAPI?.openExternal(`https://openrouter.ai/${model.id}`);
+          }}
+          style={styles.link}
+        >
+          {t("settings.viewOnOpenRouter")}
+        </a>
+      </div>
+    </>
+  );
+}
+
+/** DashScope help page showing pricing and free quota info */
+function DashScopeHelp({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <div style={styles.header}>
+        <button onClick={onBack} style={styles.backBtn}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: "4px" }}>
+            <path d="M11 1L4 8l7 7" stroke="currentColor" strokeWidth="2" fill="none" />
+          </svg>
+          {t("settings.back")}
+        </button>
+      </div>
+
+      <div style={styles.modelDetailHeader}>
+        <h3 style={{ margin: 0, fontSize: "16px", color: "#fff" }}>{t("settings.aliyunTitle")}</h3>
+        <div style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>gummy-chat-v1</div>
+      </div>
+
+      <div style={styles.pricingCard}>
+        <div style={styles.pricingTitle}>{t("help.pricingTitle")}</div>
+        <div style={styles.specRow}>
+          <span style={styles.pricingLabel}>{t("help.modelPrice")}</span>
+          <span style={styles.specValue}>0.00015 {t("help.yuanPerSec")}</span>
+        </div>
+        <div style={styles.specRow}>
+          <span style={styles.pricingLabel}>{t("help.modelPriceHour")}</span>
+          <span style={styles.specValue}>0.54 {t("help.yuanPerHour")}</span>
+        </div>
+        <div style={{ ...styles.pricingNote, color: "#e67e22", marginTop: "8px" }}>{t("help.dualBilling")}</div>
+        <div style={styles.specRow}>
+          <span style={styles.pricingLabel}>{t("help.actualPrice")}</span>
+          <span style={styles.specValue}>0.0003 {t("help.yuanPerSec")}</span>
+        </div>
+        <div style={styles.specRow}>
+          <span style={styles.pricingLabel}>{t("help.actualPriceHour")}</span>
+          <span style={styles.specValue}>1.08 {t("help.yuanPerHour")}</span>
+        </div>
+      </div>
+
+      <div style={{
+        fontSize: "13px",
+        color: "#51cf66",
+        lineHeight: "1.5",
+        padding: "8px 12px",
+        backgroundColor: "rgba(81,207,102,0.1)",
+        borderRadius: "4px",
+      }}>
+        {t("help.billingNote")}
+      </div>
+
+      <div style={styles.pricingCard}>
+        <div style={styles.pricingTitle}>{t("help.freeQuotaTitle")}</div>
+        <div style={{ fontSize: "13px", color: "#ccc", lineHeight: "1.6" }}>
+          {t("help.freeQuota")}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -173,18 +584,94 @@ const styles: Record<string, React.CSSProperties> = {
   panel: {
     backgroundColor: "#222244",
     borderRadius: "8px",
-    padding: "24px",
-    width: "320px",
+    padding: "20px",
+    width: "380px",
     maxHeight: "90vh",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
     gap: "8px",
   },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   title: {
-    margin: "0 0 8px 0",
+    margin: 0,
     fontSize: "16px",
     color: "#fff",
+  },
+  closeBtn: {
+    background: "none",
+    border: "1px solid #444",
+    color: "#aaa",
+    cursor: "pointer",
+    fontSize: "16px",
+    padding: "4px 8px",
+    borderRadius: "4px",
+  },
+  tabBar: {
+    display: "flex",
+    gap: "0",
+    borderBottom: "1px solid #333",
+  },
+  tab: {
+    flex: 1,
+    background: "none",
+    border: "none",
+    borderBottom: "2px solid transparent",
+    padding: "8px 12px",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 500,
+    transition: "color 0.2s",
+  },
+  tabContent: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    minHeight: 0,
+    flex: 1,
+  },
+  providerSelector: {
+    display: "flex",
+    gap: "8px",
+  },
+  providerBtn: {
+    flex: 1,
+    padding: "10px 12px",
+    borderRadius: "6px",
+    border: "1px solid #444",
+    cursor: "pointer",
+    textAlign: "left",
+    transition: "all 0.2s",
+  },
+  providerBtnName: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#e0e0e0",
+  },
+  activeBadge: {
+    fontSize: "10px",
+    color: "#51cf66",
+    marginTop: "2px",
+  },
+  providerSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  sectionTitle: {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#e0e0e0",
+    marginTop: "4px",
+  },
+  sectionDesc: {
+    fontSize: "12px",
+    color: "#888",
+    lineHeight: "1.4",
   },
   label: {
     fontSize: "12px",
@@ -208,10 +695,143 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#6c8ebf",
     textDecoration: "none",
   },
+  modelList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  modelCard: {
+    padding: "10px",
+    borderRadius: "6px",
+    border: "1px solid #444",
+    backgroundColor: "#1a1a2e",
+  },
+  modelCardHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+  },
+  modelName: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#e0e0e0",
+  },
+  modelId: {
+    fontSize: "11px",
+    color: "#888",
+    marginTop: "2px",
+  },
+  modelDetailBtn: {
+    background: "none",
+    border: "1px solid #555",
+    color: "#888",
+    cursor: "pointer",
+    padding: "4px 6px",
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+  },
+  modelPriceRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: "4px",
+    padding: "0 8px",
+  },
+  modelPriceLabel: {
+    fontSize: "11px",
+    color: "#888",
+  },
+  modelPriceValue: {
+    fontSize: "11px",
+    color: "#aaa",
+  },
+  pricingCard: {
+    backgroundColor: "#1a1a2e",
+    borderRadius: "6px",
+    padding: "10px 12px",
+    marginTop: "4px",
+  },
+  pricingTitle: {
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "#aaa",
+    marginBottom: "6px",
+    textTransform: "uppercase",
+    letterSpacing: "0.3px",
+  },
+  pricingRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "2px 0",
+  },
+  pricingLabel: {
+    fontSize: "12px",
+    color: "#888",
+  },
+  pricingValue: {
+    fontSize: "12px",
+    color: "#ccc",
+    fontFamily: "monospace",
+  },
+  pricingNote: {
+    fontSize: "11px",
+    color: "#666",
+    marginTop: "6px",
+    lineHeight: "1.4",
+  },
+  pricingTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    fontSize: "12px",
+  },
+  pricingTh: {
+    textAlign: "left",
+    padding: "4px 0",
+    color: "#888",
+    borderBottom: "1px solid #333",
+    fontWeight: 500,
+    fontSize: "11px",
+  },
+  pricingTd: {
+    padding: "4px 0",
+    color: "#ccc",
+    borderBottom: "1px solid #2a2a3e",
+  },
+  estimateRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "3px 0",
+  },
+  estimateValue: {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#51cf66",
+    fontFamily: "monospace",
+  },
+  notesList: {
+    margin: 0,
+    paddingLeft: "18px",
+    listStyle: "disc",
+  },
+  noteItem: {
+    fontSize: "12px",
+    color: "#bbb",
+    lineHeight: "1.6",
+  },
+  formatRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "6px 0",
+  },
   buttons: {
     display: "flex",
     gap: "8px",
-    marginTop: "12px",
+    marginTop: "8px",
   },
   saveBtn: {
     flex: 1,
@@ -222,15 +842,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#fff",
     cursor: "pointer",
     fontSize: "13px",
-  },
-  cancelBtn: {
-    padding: "8px 12px",
-    borderRadius: "4px",
-    border: "1px solid #444",
-    backgroundColor: "transparent",
-    color: "#aaa",
-    cursor: "pointer",
-    fontSize: "16px",
   },
   separator: {
     borderTop: "1px solid #333",
@@ -289,5 +900,47 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12px",
     color: "#bbb",
     wordBreak: "break-word",
+  },
+  backBtn: {
+    background: "none",
+    border: "1px solid #444",
+    color: "#aaa",
+    cursor: "pointer",
+    fontSize: "12px",
+    padding: "4px 10px",
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+  },
+  modelDetailHeader: {
+    marginTop: "4px",
+  },
+  specRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "3px 0",
+  },
+  specValue: {
+    fontSize: "12px",
+    color: "#ccc",
+    fontFamily: "monospace",
+  },
+  regionWarning: {
+    fontSize: "11px",
+    color: "#e67e22",
+    backgroundColor: "rgba(230,126,34,0.1)",
+    padding: "6px 10px",
+    borderRadius: "4px",
+    lineHeight: "1.5",
+  },
+  helpLink: {
+    background: "none",
+    border: "none",
+    color: "#6c8ebf",
+    cursor: "pointer",
+    fontSize: "11px",
+    padding: "4px 0 0",
+    textAlign: "left",
   },
 };

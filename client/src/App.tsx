@@ -5,7 +5,7 @@ import SpeakerControl from "./components/SpeakerControl";
 import VolumeBars from "./components/VolumeBars";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
-import Help from "./components/Help";
+
 import Dashboard from "./components/Dashboard";
 import History from "./components/History";
 import LanguageSwitcher from "./components/LanguageSwitcher";
@@ -30,6 +30,9 @@ interface TranslationEntry {
   timestamp: Date;
   audioDuration: number;
   source: "mic" | "speaker";
+  provider?: string;
+  generationId?: string;
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
 }
 
 function appendHistory(entry: {
@@ -39,6 +42,10 @@ function appendHistory(entry: {
   timestamp: string;
   audioDuration: number;
   isNoise: boolean;
+  provider?: string;
+  model?: string;
+  generationId?: string;
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
 }) {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
@@ -51,17 +58,30 @@ function appendHistory(entry: {
   }
 }
 
+
 export default function App() {
   const { t } = useTranslation();
   const updateInfo = useUpdateCheck();
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
   const [showSettings, setShowSettings] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Provider settings
+  const [provider, setProvider] = useState(() =>
+    localStorage.getItem("vrcflow-provider") || "dashscope"
+  );
   const [apiKey, setApiKey] = useState(() =>
     localStorage.getItem("vrcflow-apiKey") || ""
   );
+  const [openrouterKey, setOpenrouterKey] = useState(() =>
+    localStorage.getItem("vrcflow-openrouterKey") || ""
+  );
+  const [openrouterModel, setOpenrouterModel] = useState(() =>
+    localStorage.getItem("vrcflow-openrouterModel") || "google/gemini-3.1-flash-lite-preview"
+  );
+
+  // General settings
   const [oscPort, setOscPort] = useState(() =>
     parseInt(localStorage.getItem("vrcflow-oscPort") || "9000", 10)
   );
@@ -71,9 +91,17 @@ export default function App() {
   const [targetLang, setTargetLang] = useState(() =>
     localStorage.getItem("vrcflow-targetLang") || "en"
   );
+  const [displayCurrency, setDisplayCurrency] = useState(() =>
+    localStorage.getItem("vrcflow-displayCurrency") || "CNY"
+  );
   const [overlayEnabled, setOverlayEnabled] = useState(() =>
     localStorage.getItem("vrcflow-overlayEnabled") === "true"
   );
+
+  // Computed active key/model
+  const activeApiKey = provider === "openrouter" ? openrouterKey : apiKey;
+  const activeModel = provider === "openrouter" ? openrouterModel : "gummy-chat-v1";
+
   const overlayInitRef = useRef(false);
   const overlayMessagesRef = useRef<Array<{ transcription: string; translation: string; expiresAt: number }>>([]);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,9 +110,16 @@ export default function App() {
   const speakerVolumeRef = useRef(0);
   const entryIdRef = useRef(0);
 
+
   const addEntry = useCallback(
     (
-      data: { transcription: string; translation: string; audioDuration: number },
+      data: {
+        transcription: string;
+        translation: string;
+        audioDuration: number;
+        usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
+        generationId?: string;
+      },
       source: "mic" | "speaker"
     ) => {
       const id = ++entryIdRef.current;
@@ -100,6 +135,9 @@ export default function App() {
           timestamp: now,
           audioDuration: data.audioDuration,
           source,
+          provider,
+          generationId: data.generationId,
+          usage: data.usage,
         },
       ]);
 
@@ -110,6 +148,10 @@ export default function App() {
         timestamp: now.toISOString(),
         audioDuration: data.audioDuration,
         isNoise,
+        provider,
+        model: activeModel,
+        generationId: data.generationId,
+        usage: data.usage,
       });
 
       // Only send mic speech to VRChat OSC (not speaker translations)
@@ -118,11 +160,17 @@ export default function App() {
         window.electronAPI?.sendOsc(oscText, oscPort);
       }
     },
-    [oscPort, t]
+    [oscPort, t, provider, activeModel]
   );
 
   const handleResult = useCallback(
-    (data: { transcription: string; translation: string; audioDuration: number }) => {
+    (data: {
+      transcription: string;
+      translation: string;
+      audioDuration: number;
+      usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
+      generationId?: string;
+    }) => {
       addEntry(data, "mic");
     },
     [addEntry]
@@ -211,7 +259,13 @@ export default function App() {
   );
 
   const handleSpeakerResult = useCallback(
-    (data: { transcription: string; translation: string; audioDuration: number }) => {
+    (data: {
+      transcription: string;
+      translation: string;
+      audioDuration: number;
+      usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
+      generationId?: string;
+    }) => {
       addEntry(data, "speaker");
       sendToOverlay(data.transcription, data.translation);
     },
@@ -251,18 +305,37 @@ export default function App() {
   }, []);
 
   const saveSettings = useCallback(
-    (key: string, port: number, src: string, tgt: string) => {
-      setApiKey(key);
-      setOscPort(port);
-      setSourceLang(src);
-      setTargetLang(tgt);
-      localStorage.setItem("vrcflow-apiKey", key);
-      localStorage.setItem("vrcflow-oscPort", String(port));
-      localStorage.setItem("vrcflow-sourceLang", src);
-      localStorage.setItem("vrcflow-targetLang", tgt);
+    (settings: {
+      provider: string;
+      dashscopeKey: string;
+      openrouterKey: string;
+      openrouterModel: string;
+      oscPort: number;
+      sourceLang: string;
+      targetLang: string;
+      displayCurrency: string;
+    }) => {
+      setProvider(settings.provider);
+      setApiKey(settings.dashscopeKey);
+      setOpenrouterKey(settings.openrouterKey);
+      setOpenrouterModel(settings.openrouterModel);
+      setOscPort(settings.oscPort);
+      setSourceLang(settings.sourceLang);
+      setTargetLang(settings.targetLang);
+      setDisplayCurrency(settings.displayCurrency);
+      localStorage.setItem("vrcflow-provider", settings.provider);
+      localStorage.setItem("vrcflow-apiKey", settings.dashscopeKey);
+      localStorage.setItem("vrcflow-openrouterKey", settings.openrouterKey);
+      localStorage.setItem("vrcflow-openrouterModel", settings.openrouterModel);
+      localStorage.setItem("vrcflow-oscPort", String(settings.oscPort));
+      localStorage.setItem("vrcflow-sourceLang", settings.sourceLang);
+      localStorage.setItem("vrcflow-targetLang", settings.targetLang);
+      localStorage.setItem("vrcflow-displayCurrency", settings.displayCurrency);
     },
     []
   );
+
+  const providerLabel = provider === "openrouter" ? "OpenRouter" : "DashScope";
 
   return (
     <div style={styles.container}>
@@ -270,6 +343,7 @@ export default function App() {
       <header style={styles.header}>
         <h1 style={styles.title}>{t("app.title")}</h1>
         <div style={styles.headerRight}>
+          <span style={styles.providerBadge}>{providerLabel}</span>
           <button
             onClick={() => window.electronAPI?.openExternal("https://github.com/MuoDoo/VRCFlow")}
             style={styles.iconBtn}
@@ -291,12 +365,6 @@ export default function App() {
               <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM7.25 4v4.5l3.5 2.1.75-1.23-2.75-1.63V4h-1.5z" />
             </svg>
           </button>
-          {/* Help */}
-          <button onClick={() => setShowHelp(true)} style={styles.iconBtn} title={t("help.title")}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 00-2 0v.5a.75.75 0 001.5 0V5zm-.25 4a.75.75 0 00-1.5 0v3a.75.75 0 001.5 0V9z" />
-            </svg>
-          </button>
           <button onClick={() => setShowSettings(!showSettings)} style={styles.settingsBtn}>
             {t("settings.title")}
           </button>
@@ -304,22 +372,25 @@ export default function App() {
         </div>
       </header>
 
-      {!apiKey && (
+      {!activeApiKey && (
         <div style={styles.apiKeyHint}>
-          {t("settings.apiKeyRequired")}
+          {t("settings.apiKeyRequired", { provider: providerLabel })}
         </div>
       )}
 
       {showDashboard && <Dashboard onClose={() => setShowDashboard(false)} />}
       {showHistory && <History onClose={() => setShowHistory(false)} />}
-      {showHelp && <Help onClose={() => setShowHelp(false)} />}
 
       {showSettings && (
         <Settings
-          apiKey={apiKey}
+          provider={provider}
+          dashscopeKey={apiKey}
+          openrouterKey={openrouterKey}
+          openrouterModel={openrouterModel}
           oscPort={oscPort}
           sourceLang={sourceLang}
           targetLang={targetLang}
+          displayCurrency={displayCurrency}
           overlayEnabled={overlayEnabled}
           onSave={saveSettings}
           onOverlayToggle={toggleOverlay}
@@ -330,7 +401,9 @@ export default function App() {
       <TranslationView entries={entries} />
 
       <MicControl
-        apiKey={apiKey}
+        provider={provider}
+        apiKey={activeApiKey}
+        model={activeModel}
         sourceLang={sourceLang}
         targetLang={targetLang}
         volumeRef={micVolumeRef}
@@ -339,7 +412,9 @@ export default function App() {
       />
 
       <SpeakerControl
-        apiKey={apiKey}
+        provider={provider}
+        apiKey={activeApiKey}
+        model={activeModel}
         sourceLang={sourceLang}
         targetLang={targetLang}
         volumeRef={speakerVolumeRef}
@@ -380,6 +455,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "8px",
+  },
+  providerBadge: {
+    fontSize: "10px",
+    color: "#888",
+    backgroundColor: "#2a2a4a",
+    padding: "2px 6px",
+    borderRadius: "3px",
   },
   settingsBtn: {
     background: "none",

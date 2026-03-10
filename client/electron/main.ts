@@ -9,6 +9,7 @@ import {
 import path from "node:path";
 import { sendChatbox } from "./osc";
 import { transcribeAudio } from "./dashscope";
+import { transcribeAudioOpenRouter } from "./openrouter";
 import {
   initOverlay,
   updateOverlayImage,
@@ -82,11 +83,16 @@ app.whenReady().then(() => {
     async (
       _event,
       wavArrayBuffer: ArrayBuffer,
+      provider: string,
       apiKey: string,
+      model: string,
       sourceLang: string,
       targetLang: string
     ) => {
       const wavBuffer = Buffer.from(wavArrayBuffer);
+      if (provider === "openrouter") {
+        return transcribeAudioOpenRouter(wavBuffer, apiKey, model, sourceLang, targetLang);
+      }
       return transcribeAudio(wavBuffer, apiKey, sourceLang, targetLang);
     }
   );

@@ -4,7 +4,9 @@ import { encodeWAV } from "../lib/wav";
 import { startVolumeMonitor } from "../lib/volumeMonitor";
 
 interface UseSpeakerVADOptions {
+  provider: string;
   apiKey: string;
+  model: string;
   sourceLang: string;
   targetLang: string;
   volumeRef?: React.MutableRefObject<number>;
@@ -12,6 +14,8 @@ interface UseSpeakerVADOptions {
     transcription: string;
     translation: string;
     audioDuration: number;
+    usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
+    generationId?: string;
   }) => void;
   onError: (error: string) => void;
 }
@@ -41,7 +45,7 @@ async function acquireLoopbackStream(): Promise<MediaStream> {
 export function useSpeakerVAD(
   options: UseSpeakerVADOptions
 ): UseSpeakerVADReturn {
-  const { apiKey, sourceLang, targetLang, volumeRef, onResult, onError } =
+  const { provider, apiKey, model, sourceLang, targetLang, volumeRef, onResult, onError } =
     options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
@@ -57,13 +61,13 @@ export function useSpeakerVAD(
     onErrorRef.current = onError;
   }, [onResult, onError]);
 
-  const optionsRef = useRef({ apiKey, sourceLang, targetLang });
+  const optionsRef = useRef({ provider, apiKey, model, sourceLang, targetLang });
   useEffect(() => {
-    optionsRef.current = { apiKey, sourceLang, targetLang };
-  }, [apiKey, sourceLang, targetLang]);
+    optionsRef.current = { provider, apiKey, model, sourceLang, targetLang };
+  }, [provider, apiKey, model, sourceLang, targetLang]);
 
   const uploadAudio = useCallback(async (audio: Float32Array) => {
-    const { apiKey, sourceLang, targetLang } = optionsRef.current;
+    const { provider, apiKey, model, sourceLang, targetLang } = optionsRef.current;
 
     if (!apiKey) {
       onErrorRef.current("API_KEY_REQUIRED");
@@ -78,7 +82,9 @@ export function useSpeakerVAD(
     const wavBuffer = encodeWAV(audio, 16000);
     const result = await window.electronAPI.transcribe(
       wavBuffer,
+      provider,
       apiKey,
+      model,
       sourceLang,
       targetLang
     );
@@ -87,6 +93,8 @@ export function useSpeakerVAD(
       transcription: result.transcription,
       translation: result.translation,
       audioDuration: result.audioDuration,
+      usage: result.usage,
+      generationId: result.generationId,
     });
   }, []);
 
