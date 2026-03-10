@@ -15,8 +15,8 @@ export async function transcribeAudioOpenRouter(
   targetLang: string
 ): Promise<TranscribeResult> {
   const base64Audio = wavBuffer.toString("base64");
-  const targetLangName = LANG_NAMES[targetLang] || targetLang;
   const sourceLangName = LANG_NAMES[sourceLang] || sourceLang;
+  const targetLangName = LANG_NAMES[targetLang] || targetLang;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -28,23 +28,18 @@ export async function transcribeAudioOpenRouter(
       model,
       messages: [
         {
-          role: "system",
-          content:
-            "You are a transcription and translation assistant. When you receive audio input, transcribe it in the original language and translate it to the target language. Always use the provided tool to return results.",
-        },
-        {
           role: "user",
           content: [
-            {
-              type: "text",
-              text: `Transcribe this audio and translate it to ${targetLangName}. The source language is ${sourceLangName}.`,
-            },
             {
               type: "input_audio",
               input_audio: {
                 data: base64Audio,
                 format: "wav",
               },
+            },
+            {
+              type: "text",
+              text: `${sourceLangName} (may be mixed) → ${targetLangName}`,
             },
           ],
         },
@@ -54,18 +49,12 @@ export async function transcribeAudioOpenRouter(
           type: "function",
           function: {
             name: "submit_transcription",
-            description: "Submit the transcription and translation result",
+            description: `ASR + translate to ${targetLangName}`,
             parameters: {
               type: "object",
               properties: {
-                transcription: {
-                  type: "string",
-                  description: "Original transcription in source language",
-                },
-                translation: {
-                  type: "string",
-                  description: `Translation in ${targetLangName}`,
-                },
+                transcription: { type: "string" },
+                translation: { type: "string" },
               },
               required: ["transcription", "translation"],
             },
@@ -82,7 +71,12 @@ export async function transcribeAudioOpenRouter(
   if (!response.ok) {
     const errorText = await response.text();
     console.error("[openrouter] API error:", response.status, errorText);
-    throw new Error(`OpenRouter API error: ${response.status}`);
+    let message = `OpenRouter API error: ${response.status}`;
+    try {
+      const err = JSON.parse(errorText);
+      if (err?.error?.message) message = err.error.message;
+    } catch { /* use default */ }
+    throw new Error(message);
   }
 
   const data = await response.json();

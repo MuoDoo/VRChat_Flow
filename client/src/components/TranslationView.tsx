@@ -15,6 +15,7 @@ interface TranslationEntry {
   translation: string;
   timestamp: Date;
   audioDuration: number;
+  processingTime: number;
   source: "mic" | "speaker";
   provider?: string;
   usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
@@ -75,8 +76,15 @@ export default function TranslationView({ entries }: TranslationViewProps) {
                   {entry.timestamp.toLocaleTimeString()}
                 </div>
               </div>
-              <div style={styles.duration}>
-                {entry.audioDuration.toFixed(1)}s
+              <div style={styles.durationBlock}>
+                <div style={styles.durationLine}>
+                  <span style={styles.durationLabel}>{t("card.audio")}</span>
+                  <span>{entry.audioDuration.toFixed(1)}s</span>
+                </div>
+                <div style={styles.durationLine}>
+                  <span style={styles.durationLabel}>{t("card.latency")}</span>
+                  <span>{entry.processingTime.toFixed(1)}s</span>
+                </div>
               </div>
             </div>
             <div style={styles.transcription}>{entry.transcription}</div>
@@ -134,9 +142,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "11px",
     color: "#555",
   },
-  duration: {
-    fontSize: "11px",
+  durationBlock: {
+    textAlign: "right",
+    fontSize: "10px",
     color: "#666",
+    fontFamily: "monospace",
+    lineHeight: "1.4",
+  },
+  durationLine: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "4px",
+  },
+  durationLabel: {
+    color: "#555",
   },
   transcription: {
     fontSize: "14px",

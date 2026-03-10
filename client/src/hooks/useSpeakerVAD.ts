@@ -9,11 +9,13 @@ interface UseSpeakerVADOptions {
   model: string;
   sourceLang: string;
   targetLang: string;
+  timeoutSec: number;
   volumeRef?: React.MutableRefObject<number>;
   onResult: (data: {
     transcription: string;
     translation: string;
     audioDuration: number;
+    processingTime: number;
     usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
     generationId?: string;
   }) => void;
@@ -45,7 +47,7 @@ async function acquireLoopbackStream(): Promise<MediaStream> {
 export function useSpeakerVAD(
   options: UseSpeakerVADOptions
 ): UseSpeakerVADReturn {
-  const { provider, apiKey, model, sourceLang, targetLang, volumeRef, onResult, onError } =
+  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, volumeRef, onResult, onError } =
     options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
@@ -61,13 +63,13 @@ export function useSpeakerVAD(
     onErrorRef.current = onError;
   }, [onResult, onError]);
 
-  const optionsRef = useRef({ provider, apiKey, model, sourceLang, targetLang });
+  const optionsRef = useRef({ provider, apiKey, model, sourceLang, targetLang, timeoutSec });
   useEffect(() => {
-    optionsRef.current = { provider, apiKey, model, sourceLang, targetLang };
-  }, [provider, apiKey, model, sourceLang, targetLang]);
+    optionsRef.current = { provider, apiKey, model, sourceLang, targetLang, timeoutSec };
+  }, [provider, apiKey, model, sourceLang, targetLang, timeoutSec]);
 
   const uploadAudio = useCallback(async (audio: Float32Array) => {
-    const { provider, apiKey, model, sourceLang, targetLang } = optionsRef.current;
+    const { provider, apiKey, model, sourceLang, targetLang, timeoutSec } = optionsRef.current;
 
     if (!apiKey) {
       onErrorRef.current("API_KEY_REQUIRED");
@@ -80,19 +82,21 @@ export function useSpeakerVAD(
     }
 
     const wavBuffer = encodeWAV(audio, 16000);
-    const result = await window.electronAPI.transcribe(
-      wavBuffer,
-      provider,
-      apiKey,
-      model,
-      sourceLang,
-      targetLang
-    );
+    const t0 = performance.now();
+    const timeoutMs = timeoutSec * 1000;
+    const result = await Promise.race([
+      window.electronAPI.transcribe(wavBuffer, provider, apiKey, model, sourceLang, targetLang),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Processing timeout (${timeoutSec}s)`)), timeoutMs)
+      ),
+    ]);
+    const processingTime = (performance.now() - t0) / 1000;
 
     onResultRef.current({
       transcription: result.transcription,
       translation: result.translation,
       audioDuration: result.audioDuration,
+      processingTime,
       usage: result.usage,
       generationId: result.generationId,
     });
@@ -112,7 +116,8 @@ export function useSpeakerVAD(
         await uploadAudio(audio);
       } catch (e) {
         console.error("Speaker transcribe error:", e);
-        onErrorRef.current("transcribeFailed");
+        const msg = e instanceof Error ? e.message : "transcribeFailed";
+        onErrorRef.current(msg);
       }
 
       inflightRef.current = false;

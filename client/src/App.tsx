@@ -29,6 +29,7 @@ interface TranslationEntry {
   translation: string;
   timestamp: Date;
   audioDuration: number;
+  processingTime: number;
   source: "mic" | "speaker";
   provider?: string;
   generationId?: string;
@@ -63,6 +64,8 @@ export default function App() {
   const { t } = useTranslation();
   const updateInfo = useUpdateCheck();
   const [entries, setEntries] = useState<TranslationEntry[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -94,6 +97,9 @@ export default function App() {
   const [displayCurrency, setDisplayCurrency] = useState(() =>
     localStorage.getItem("vrcflow-displayCurrency") || "CNY"
   );
+  const [processingTimeout, setProcessingTimeout] = useState(() =>
+    parseInt(localStorage.getItem("vrcflow-processingTimeout") || "5", 10)
+  );
   const [overlayEnabled, setOverlayEnabled] = useState(() =>
     localStorage.getItem("vrcflow-overlayEnabled") === "true"
   );
@@ -117,6 +123,7 @@ export default function App() {
         transcription: string;
         translation: string;
         audioDuration: number;
+        processingTime: number;
         usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
         generationId?: string;
       },
@@ -134,6 +141,7 @@ export default function App() {
           translation: isNoise ? "" : data.translation,
           timestamp: now,
           audioDuration: data.audioDuration,
+          processingTime: data.processingTime,
           source,
           provider,
           generationId: data.generationId,
@@ -168,6 +176,7 @@ export default function App() {
       transcription: string;
       translation: string;
       audioDuration: number;
+      processingTime: number;
       usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
       generationId?: string;
     }) => {
@@ -263,6 +272,7 @@ export default function App() {
       transcription: string;
       translation: string;
       audioDuration: number;
+      processingTime: number;
       usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
       generationId?: string;
     }) => {
@@ -302,6 +312,9 @@ export default function App() {
 
   const handleError = useCallback((error: string) => {
     console.error("Transcription error:", error);
+    setErrorMsg(error);
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => setErrorMsg(null), 8000);
   }, []);
 
   const saveSettings = useCallback(
@@ -314,6 +327,7 @@ export default function App() {
       sourceLang: string;
       targetLang: string;
       displayCurrency: string;
+      processingTimeout: number;
     }) => {
       setProvider(settings.provider);
       setApiKey(settings.dashscopeKey);
@@ -323,6 +337,7 @@ export default function App() {
       setSourceLang(settings.sourceLang);
       setTargetLang(settings.targetLang);
       setDisplayCurrency(settings.displayCurrency);
+      setProcessingTimeout(settings.processingTimeout);
       localStorage.setItem("vrcflow-provider", settings.provider);
       localStorage.setItem("vrcflow-apiKey", settings.dashscopeKey);
       localStorage.setItem("vrcflow-openrouterKey", settings.openrouterKey);
@@ -331,6 +346,7 @@ export default function App() {
       localStorage.setItem("vrcflow-sourceLang", settings.sourceLang);
       localStorage.setItem("vrcflow-targetLang", settings.targetLang);
       localStorage.setItem("vrcflow-displayCurrency", settings.displayCurrency);
+      localStorage.setItem("vrcflow-processingTimeout", String(settings.processingTimeout));
     },
     []
   );
@@ -378,6 +394,12 @@ export default function App() {
         </div>
       )}
 
+      {errorMsg && (
+        <div style={styles.errorToast} onClick={() => setErrorMsg(null)}>
+          {errorMsg}
+        </div>
+      )}
+
       {showDashboard && <Dashboard onClose={() => setShowDashboard(false)} />}
       {showHistory && <History onClose={() => setShowHistory(false)} />}
 
@@ -391,6 +413,7 @@ export default function App() {
           sourceLang={sourceLang}
           targetLang={targetLang}
           displayCurrency={displayCurrency}
+          processingTimeout={processingTimeout}
           overlayEnabled={overlayEnabled}
           onSave={saveSettings}
           onOverlayToggle={toggleOverlay}
@@ -406,6 +429,7 @@ export default function App() {
         model={activeModel}
         sourceLang={sourceLang}
         targetLang={targetLang}
+        timeoutSec={processingTimeout}
         volumeRef={micVolumeRef}
         onResult={handleResult}
         onError={handleError}
@@ -417,6 +441,7 @@ export default function App() {
         model={activeModel}
         sourceLang={sourceLang}
         targetLang={targetLang}
+        timeoutSec={processingTimeout}
         volumeRef={speakerVolumeRef}
         onResult={handleSpeakerResult}
         onError={handleError}
@@ -487,5 +512,14 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#e67e22",
     fontSize: "13px",
     textAlign: "center",
+  },
+  errorToast: {
+    padding: "8px 16px",
+    backgroundColor: "rgba(231,76,60,0.15)",
+    color: "#ff6b6b",
+    fontSize: "12px",
+    textAlign: "center",
+    cursor: "pointer",
+    borderBottom: "1px solid rgba(231,76,60,0.3)",
   },
 };

@@ -7,11 +7,13 @@ interface MicControlProps {
   model: string;
   sourceLang: string;
   targetLang: string;
+  timeoutSec: number;
   volumeRef?: React.MutableRefObject<number>;
   onResult: (data: {
     transcription: string;
     translation: string;
     audioDuration: number;
+    processingTime: number;
     usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
     generationId?: string;
   }) => void;
@@ -24,6 +26,7 @@ export default function MicControl({
   model,
   sourceLang,
   targetLang,
+  timeoutSec,
   volumeRef,
   onResult,
   onError,
@@ -35,6 +38,7 @@ export default function MicControl({
     model,
     sourceLang,
     targetLang,
+    timeoutSec,
     volumeRef,
     onResult,
     onError,

@@ -12,6 +12,7 @@
   "settings.generalTab": "一般",
   "settings.save": "保存",
   "settings.back": "戻る",
+  "settings.providerDisclaimer": "すべてのプロバイダは本ソフトウェアとは無関係の第三者サービスです。料金はすべて各プロバイダが徴収します。サポートが必要な場合は、ご利用のプロバイダに直接お問い合わせください。",
   "settings.active": "有効",
   "settings.apiKey": "API Key",
   "settings.apiKeyPlaceholder": "sk-...",
@@ -27,6 +28,7 @@
 
   "settings.openrouterTitle": "OpenRouter",
   "settings.openrouterDesc": "OpenRouter経由で音声対応LLMにアクセス。ツールコールによる文字起こし＋翻訳。",
+  "settings.openrouterPrepaid": "OpenRouterはプリペイド（前払い）が必要です。",
   "settings.openrouterRegionNote": "一部のモデルには地域制限があります。中国（香港含む）ではGeminiが利用できないため、DashScopeをご利用ください。",
   "settings.getApiKeyOpenRouter": "OpenRouterでAPI Keyを取得",
 
@@ -56,6 +58,9 @@
   "settings.outputDevices": "出力",
   "settings.refreshDevices": "更新",
   "settings.displayCurrency": "表示通貨",
+  "settings.advanced": "詳細設定",
+  "settings.processingTimeout": "処理タイムアウト",
+  "settings.processingTimeoutDesc": "処理がこの時間を超えた場合、結果を破棄します。タイムアウトが頻発する場合は値を大きくしてください。",
 
   "update.available": "新バージョンがあります：v{{latest}}（現在：v{{current}}）",
   "update.download": "ダウンロード",
@@ -97,6 +102,9 @@
   "speaker.status.listening": "スピーカー録音中...",
   "speaker.status.processing": "処理中...",
   "speaker.status.idle": "スピーカーオフ",
+
+  "card.audio": "音声",
+  "card.latency": "処理",
 
   "label.speaker": "他者",
   "label.noise": "ノイズ",

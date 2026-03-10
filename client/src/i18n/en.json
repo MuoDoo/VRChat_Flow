@@ -12,6 +12,7 @@
   "settings.generalTab": "General",
   "settings.save": "Save",
   "settings.back": "Back",
+  "settings.providerDisclaimer": "All providers are third-party services unaffiliated with this software. All charges and fees are collected by the respective provider. For support, please contact your provider directly.",
   "settings.active": "Active",
   "settings.apiKey": "API Key",
   "settings.apiKeyPlaceholder": "sk-...",
@@ -27,6 +28,7 @@
 
   "settings.openrouterTitle": "OpenRouter",
   "settings.openrouterDesc": "Access multiple audio-capable LLMs via OpenRouter. Transcription + translation via tool calling.",
+  "settings.openrouterPrepaid": "OpenRouter requires prepaid credits to use.",
   "settings.openrouterRegionNote": "Some models have regional restrictions. Gemini is unavailable in China (including Hong Kong). Please use DashScope instead.",
   "settings.getApiKeyOpenRouter": "Get API Key from OpenRouter",
 
@@ -56,6 +58,9 @@
   "settings.outputDevices": "Output",
   "settings.refreshDevices": "Refresh",
   "settings.displayCurrency": "Display Currency",
+  "settings.advanced": "Advanced",
+  "settings.processingTimeout": "Processing Timeout",
+  "settings.processingTimeoutDesc": "Discard results if processing takes longer than this. Increase if you experience frequent timeouts.",
 
   "update.available": "New version available: v{{latest}} (current: v{{current}})",
   "update.download": "Download",
@@ -97,6 +102,9 @@
   "speaker.status.listening": "Capturing speaker...",
   "speaker.status.processing": "Processing speaker...",
   "speaker.status.idle": "Speaker off",
+
+  "card.audio": "audio",
+  "card.latency": "proc",
 
   "label.speaker": "Speaker",
   "label.noise": "Noise",

@@ -12,6 +12,7 @@
   "settings.generalTab": "通用",
   "settings.save": "保存",
   "settings.back": "返回",
+  "settings.providerDisclaimer": "所有服务商均为第三方服务，与本软件无关。您所充值的消耗及费用均由对应服务商收取，售后服务请联系您所使用的服务商。",
   "settings.active": "已启用",
   "settings.apiKey": "API Key",
   "settings.apiKeyPlaceholder": "sk-...",
@@ -27,6 +28,7 @@
 
   "settings.openrouterTitle": "OpenRouter",
   "settings.openrouterDesc": "通过 OpenRouter 访问多种支持音频的大语言模型。使用工具调用实现转录 + 翻译。",
+  "settings.openrouterPrepaid": "OpenRouter 需要预充值后才能使用。",
   "settings.openrouterRegionNote": "部分模型有地区使用限制。在中国（含香港）地区 Gemini 无法使用，请选用 DashScope 链路。",
   "settings.getApiKeyOpenRouter": "前往 OpenRouter 获取 API Key",
 
@@ -56,6 +58,9 @@
   "settings.outputDevices": "输出",
   "settings.refreshDevices": "刷新",
   "settings.displayCurrency": "显示货币",
+  "settings.advanced": "高级选项",
+  "settings.processingTimeout": "处理超时",
+  "settings.processingTimeoutDesc": "处理时间超过此值时丢弃结果。如果频繁超时，请适当增大此值。",
 
   "update.available": "发现新版本：v{{latest}}（当前：v{{current}}）",
   "update.download": "前往下载",
@@ -97,6 +102,9 @@
   "speaker.status.listening": "正在捕获扬声器...",
   "speaker.status.processing": "处理中...",
   "speaker.status.idle": "扬声器关闭",
+
+  "card.audio": "音频",
+  "card.latency": "耗时",
 
   "label.speaker": "他人",
   "label.noise": "杂音",

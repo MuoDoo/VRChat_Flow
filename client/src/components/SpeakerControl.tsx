@@ -7,11 +7,13 @@ interface SpeakerControlProps {
   model: string;
   sourceLang: string;
   targetLang: string;
+  timeoutSec: number;
   volumeRef?: React.MutableRefObject<number>;
   onResult: (data: {
     transcription: string;
     translation: string;
     audioDuration: number;
+    processingTime: number;
     usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
     generationId?: string;
   }) => void;
@@ -24,6 +26,7 @@ export default function SpeakerControl({
   model,
   sourceLang,
   targetLang,
+  timeoutSec,
   volumeRef,
   onResult,
   onError,
@@ -37,6 +40,7 @@ export default function SpeakerControl({
       // Speaker capture translates others' speech — reverse the language pair
       sourceLang: targetLang,
       targetLang: sourceLang,
+      timeoutSec,
       volumeRef,
       onResult,
       onError,

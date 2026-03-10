@@ -11,6 +11,7 @@ interface SettingsProps {
   sourceLang: string;
   targetLang: string;
   displayCurrency: string;
+  processingTimeout: number;
   overlayEnabled: boolean;
   onSave: (settings: {
     provider: string;
@@ -21,6 +22,7 @@ interface SettingsProps {
     sourceLang: string;
     targetLang: string;
     displayCurrency: string;
+    processingTimeout: number;
   }) => void;
   onOverlayToggle: (enabled: boolean) => void;
   onClose: () => void;
@@ -35,6 +37,7 @@ export default function Settings({
   sourceLang: initSrc,
   targetLang: initTgt,
   displayCurrency: initCurrency,
+  processingTimeout: initTimeout,
   overlayEnabled,
   onSave,
   onOverlayToggle,
@@ -50,6 +53,8 @@ export default function Settings({
   const [src, setSrc] = useState(initSrc);
   const [tgt, setTgt] = useState(initTgt);
   const [currency, setCurrency] = useState(initCurrency);
+  const [timeout, setTimeout_] = useState(String(initTimeout));
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [modelDetailId, setModelDetailId] = useState<string | null>(null);
   const [showDashscopeHelp, setShowDashscopeHelp] = useState(false);
   const [defaultInput, setDefaultInput] = useState("");
@@ -82,6 +87,7 @@ export default function Settings({
       sourceLang: src,
       targetLang: tgt,
       displayCurrency: currency,
+      processingTimeout: Math.max(1, parseInt(timeout, 10) || 5),
     });
     onClose();
   };
@@ -148,6 +154,7 @@ export default function Settings({
 
         {activeTab === "provider" && (
           <div style={styles.tabContent}>
+            <div style={styles.providerDisclaimer}>{t("settings.providerDisclaimer")}</div>
             {/* Provider selector */}
             <div style={styles.providerSelector}>
               {PROVIDERS.map((p) => (
@@ -241,6 +248,7 @@ export default function Settings({
                   >
                     {t("settings.getApiKeyOpenRouter")}
                   </a>
+                  <div style={{ color: "#888", marginTop: "2px" }}>{t("settings.openrouterPrepaid")}</div>
                 </div>
 
                 {/* Model selection */}
@@ -370,6 +378,46 @@ export default function Settings({
                 <span style={styles.deviceName}>{defaultOutput}</span>
               </div>
             </div>
+
+            <div style={styles.separator} />
+
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              style={styles.advancedToggle}
+            >
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                fill="currentColor"
+                style={{
+                  marginRight: "6px",
+                  transition: "transform 0.2s",
+                  transform: showAdvanced ? "rotate(90deg)" : "rotate(0deg)",
+                }}
+              >
+                <path d="M3 1l5 4-5 4V1z" />
+              </svg>
+              {t("settings.advanced")}
+            </button>
+
+            {showAdvanced && (
+              <div style={styles.advancedSection}>
+                <label style={styles.label}>{t("settings.processingTimeout")}</label>
+                <div style={styles.timeoutRow}>
+                  <input
+                    style={{ ...styles.input, flex: 1 }}
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={timeout}
+                    onChange={(e) => setTimeout_(e.target.value)}
+                  />
+                  <span style={styles.timeoutUnit}>s</span>
+                </div>
+                <div style={styles.pricingNote}>{t("settings.processingTimeoutDesc")}</div>
+              </div>
+            )}
           </div>
         )}
 
@@ -587,7 +635,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "20px",
     width: "380px",
     maxHeight: "90vh",
-    overflowY: "auto",
+    overflow: "hidden",
     display: "flex",
     flexDirection: "column",
     gap: "8px",
@@ -633,6 +681,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "8px",
     minHeight: 0,
     flex: 1,
+    overflowY: "auto",
   },
   providerSelector: {
     display: "flex",
@@ -832,6 +881,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     gap: "8px",
     marginTop: "8px",
+    flexShrink: 0,
   },
   saveBtn: {
     flex: 1,
@@ -926,6 +976,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#ccc",
     fontFamily: "monospace",
   },
+  providerDisclaimer: {
+    fontSize: "11px",
+    color: "#888",
+    lineHeight: "1.5",
+  },
   regionWarning: {
     fontSize: "11px",
     color: "#e67e22",
@@ -933,6 +988,31 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 10px",
     borderRadius: "4px",
     lineHeight: "1.5",
+  },
+  advancedToggle: {
+    background: "none",
+    border: "none",
+    color: "#888",
+    cursor: "pointer",
+    fontSize: "12px",
+    padding: "4px 0",
+    display: "flex",
+    alignItems: "center",
+    textAlign: "left",
+  },
+  advancedSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  timeoutRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  timeoutUnit: {
+    fontSize: "13px",
+    color: "#888",
   },
   helpLink: {
     background: "none",
