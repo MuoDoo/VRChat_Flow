@@ -7,7 +7,7 @@ VRCFlow is a real-time voice translation app for VRChat. Speak into your microph
 ## Download & Install (Windows)
 
 1. Go to the [Releases page](https://github.com/MuoDoo/VRCFlow/releases)
-2. Download the latest `.exe` installer (e.g. `VRCFlow-Setup-0.0.6.exe`)
+2. Download the latest `.exe` installer
 3. Run the installer, choose your install location, and complete the setup
 4. Launch **VRCFlow** from the Start menu or desktop shortcut
 
@@ -15,24 +15,121 @@ VRCFlow is a real-time voice translation app for VRChat. Speak into your microph
 
 ## Getting Started
 
-### 1. Get a DashScope API Key
+### 1. Choose a Provider
 
-VRCFlow uses Alibaba Cloud's DashScope API for speech recognition and translation. You need your own API key:
+VRCFlow supports multiple ASR/translation providers. Open **Settings** (top-right corner) and go to the **Provider** tab to select one.
 
+#### Aliyun DashScope
+
+The original built-in provider. Uses Alibaba Cloud's real-time WebSocket API for simultaneous speech recognition and translation.
+
+**Model: gummy-chat-v1**
+
+| Feature | Details |
+|---------|---------|
+| **Protocol** | WebSocket duplex streaming (real-time) |
+| **ASR + Translation** | Simultaneous recognition and translation in one call |
+| **Supported Languages** | Chinese, English, Japanese, Korean |
+| **Pricing** | ¥0.00015/second per channel, dual-billed (ASR + translation = 2× duration) |
+| **Free Tier** | New users get 10 hours of free quota |
+| **Billing Model** | Only charged for actual speech duration |
+
+**Advantages:**
+- Ultra-low latency — real-time streaming, results appear as you speak
+- Optimized for short voice segments in VRChat conversations
+- Simple pricing, no token calculation needed
+- Great value for Chinese ↔ other language translation
+
+**How to get the API Key:**
 1. Visit the [Alibaba Cloud Bailian API Key page](https://bailian.console.aliyun.com/cn-beijing/?apiKey=1&tab=model#/api-key)
 2. Register an account if you don't have one (new users get 10 hours of free quota)
 3. Create and copy your API key
+
+#### OpenRouter
+
+An alternative provider that routes to multiple AI models through a unified API. Offers model selection flexibility and transparent pricing.
+
+**How to get the API Key:**
+1. Visit [OpenRouter Keys](https://openrouter.ai/keys)
+2. Create an account and generate an API key
+3. Add credits to your account
+
+##### Model: Voxtral Small 24B (Recommended)
+
+Mistral's audio-capable model with state-of-the-art speech transcription and translation.
+
+| Feature | Details |
+|---------|---------|
+| **Provider** | Mistral AI (via OpenRouter) |
+| **Protocol** | REST API with function calling |
+| **Context Window** | 32K tokens |
+| **Max Output** | 8,192 tokens |
+| **Audio Input Pricing** | $100 / 1M seconds (~$0.006/min) |
+| **Text Input Pricing** | $0.10 / 1M tokens |
+| **Text Output Pricing** | $0.30 / 1M tokens |
+| **Audio Formats** | WAV, MP3, FLAC, Opus, OGG |
+
+**Advantages:**
+- Best-in-class speech transcription and translation accuracy
+- Very low cost for short audio segments (ideal for VRChat)
+- Retains strong text understanding performance
+- Supports function calling for structured output
+
+##### Model: Gemini 3.1 Flash Lite
+
+Google's high-efficiency model optimized for high-volume, cost-sensitive use cases.
+
+| Feature | Details |
+|---------|---------|
+| **Provider** | Google (via OpenRouter) |
+| **Protocol** | REST API with function calling |
+| **Context Window** | 1M tokens |
+| **Max Output** | 65,536 tokens |
+| **Audio Input Pricing** | $0.50 / 1M tokens |
+| **Text Input Pricing** | $0.25 / 1M tokens |
+| **Text Output Pricing** | $1.50 / 1M tokens |
+| **Audio Formats** | WAV, MP3, FLAC, Opus, OGG |
+
+**Advantages:**
+- Massive 1M token context window
+- Supports text, image, video, file, and audio input
+- Implicit caching support (cache read: $0.025/1M tokens)
+- Half the cost of Gemini 3 Flash
+
+### Provider Comparison
+
+| | DashScope | OpenRouter (Voxtral) | OpenRouter (Gemini) |
+|---|---|---|---|
+| **Best For** | Chinese ↔ other languages, lowest latency | Best accuracy, short clips | High-volume, budget-conscious |
+| **Latency** | Real-time streaming | REST (one-shot) | REST (one-shot) |
+| **Pricing Model** | Per-second | Per-second + per-token | Per-token |
+| **Approx. Cost/min** | ~¥0.018 (~$0.0025) | ~$0.006 | Varies by audio length |
+| **Free Tier** | 10 hours free | No | No |
+| **Model Choice** | Fixed (gummy-chat-v1) | Selectable | Selectable |
 
 ### 2. Configure Settings
 
 Click the **Settings** button (top-right corner) to open the settings panel:
 
+**Provider Tab:**
+
+| Setting | Description |
+|---------|-------------|
+| **Provider** | Choose between DashScope and OpenRouter |
+| **API Key** | Your API key for the selected provider |
+| **Model** | Model selection (OpenRouter only) |
+
+**General Tab:**
+
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **DashScope API Key** | Your API key for speech recognition and translation | (required) |
-| **OSC Port** | UDP port for VRChat OSC | `9000` |
 | **Source Language** | Language you speak | Chinese |
 | **Target Language** | Language to translate into | English |
+| **OSC Port** | UDP port for VRChat OSC | `9000` |
+| **SteamVR Overlay** | Enable/disable VR overlay display | Off |
+| **Processing Timeout** | Max seconds to wait for API response | `5` |
+| **Speech Pad** | Silence padding before end-of-speech detection (ms) | `600` |
+| **Display Currency** | Currency for cost display (CNY/USD/JPY) | CNY |
 
 Available languages: Chinese, English, Japanese, Korean.
 
@@ -42,7 +139,7 @@ Use the language dropdown (top-right area) to switch the interface between **Eng
 
 ## Using VRCFlow
 
-### Start Translating
+### Microphone Translation
 
 1. Click the green **Start** button at the bottom of the screen
 2. Allow microphone access if prompted by your system
@@ -52,9 +149,29 @@ Use the language dropdown (top-right area) to switch the interface between **Eng
    - Timestamp
    - Original text (what you said)
    - Translated text (in the target language)
+   - Provider and processing info
 6. The translated text is simultaneously sent to VRChat's Chatbox via OSC
 
 > You are only charged for the time you are actually speaking. If you press Start but remain silent, no fees are incurred.
+
+### Speaker / System Audio Translation
+
+VRCFlow can also capture and translate system audio (e.g., what others are saying in VRChat):
+
+1. Click the **Speaker** tab at the bottom
+2. Click **Start** to begin capturing system audio
+3. The app captures desktop audio, applies VAD, and translates detected speech
+4. Results appear alongside microphone translations, tagged with a speaker icon
+
+> This feature is useful for translating what others are saying in voice chat.
+
+### SteamVR Overlay
+
+Enable the overlay in Settings → General → SteamVR Overlay to display translation results as a floating panel in VR:
+
+- Shows recent translations overlaid in your VR view
+- Messages auto-expire after 8 seconds
+- Up to 3 messages displayed simultaneously
 
 ### Stop Translating
 
@@ -65,7 +182,7 @@ Click the red **Stop** button to stop listening.
 | Status | Meaning |
 |--------|---------|
 | **Ready** | Idle, press Start to begin |
-| **Listening...** | Microphone is active, waiting for speech |
+| **Listening...** | Microphone/speaker is active, waiting for speech |
 | **Processing...** | Speech detected, recognizing and translating |
 | Green dot | Listening |
 | Orange dot | Processing a speech segment |
@@ -73,13 +190,15 @@ Click the red **Stop** button to stop listening.
 ### Dashboard
 
 Click the bar chart icon in the header to view your usage dashboard:
+- Cost breakdown by provider (DashScope in CNY, OpenRouter in USD)
 - Today's audio seconds, billed seconds, and estimated cost
 - Noise detection stats (coughs, background sounds)
-- Daily breakdown table
+- Daily breakdown table with per-provider details
+- Currency conversion support (CNY / USD / JPY)
 
 ### History
 
-Click the clock icon in the header to browse all past translations with timestamps and durations.
+Click the clock icon in the header to browse all past translations with timestamps, durations, provider info, and token usage.
 
 ## VRChat Setup
 
@@ -113,6 +232,13 @@ The voice detection model is loading. This takes a few seconds on first launch. 
 
 ### Recognition Failed
 
-- Check that your DashScope API Key is correct in Settings
+- Check that your API Key is correct in Settings (make sure it matches your selected provider)
 - Check your internet connection
-- Your API quota may be exhausted — check your [Bailian console](https://bailian.console.aliyun.com/)
+- **DashScope**: Your API quota may be exhausted — check your [Bailian console](https://bailian.console.aliyun.com/)
+- **OpenRouter**: Check your credit balance at [OpenRouter](https://openrouter.ai/credits)
+
+### High Latency or Timeout
+
+- Try reducing the **Speech Pad** value in Settings → General → Advanced
+- Try a different provider or model
+- Check your network connection stability

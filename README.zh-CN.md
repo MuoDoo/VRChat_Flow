@@ -4,7 +4,7 @@
 
 实时语音翻译桌面应用，专为 VRChat 设计。
 
-麦克风采集语音 → 本地 VAD 智能切片 → DashScope ASR 识别 + 翻译 → 结果通过 OSC 发送到 VRChat Chatbox。
+麦克风 / 系统音频采集 → 本地 VAD 智能切片 → 多 Provider ASR 识别 + 翻译 → 结果通过 OSC 发送到 VRChat Chatbox。
 
 ## 使用指南
 
@@ -17,11 +17,14 @@
 ## 功能特性
 
 - **实时语音翻译** — 说话即翻译，延迟低，体验流畅
+- **多 Provider 支持** — 可选阿里云 DashScope 或 OpenRouter，支持多种模型
+- **麦克风 + 系统音频捕获** — 翻译自己的语音（麦克风）或他人的语音（系统音频）
 - **本地 VAD 检测** — 基于 Silero VAD (ONNX)，在浏览器端完成语音活动检测，仅发送有效语音片段
-- **直连 DashScope** — 无需后端服务器，用户使用自己的 API Key
+- **无需后端服务器** — 用户使用自己的 API Key，无中间服务器
 - **VRChat OSC 集成** — 翻译结果自动推送到 VRChat Chatbox，无需手动输入
+- **SteamVR 悬浮窗** — 可选开启悬浮窗模式，在 VR 中直接显示翻译结果
 - **多语言 UI** — 界面支持 English / 中文 / 日本語
-- **仪表盘和历史记录** — 追踪每日用量、费用，浏览所有历史翻译
+- **仪表盘和历史记录** — 按 Provider 追踪每日用量、费用，浏览所有历史翻译
 - **自动更新检查** — 启动时检测新版本并提醒
 
 ## 快速开始
@@ -87,8 +90,20 @@ cd client && npm run build
 ```
 vrcflow/
 ├── client/                  # Electron + Vite + React + TypeScript
-│   ├── electron/            # 主进程 (DashScope API、OSC 发送、IPC bridge)
+│   ├── electron/            # 主进程 (Provider API、OSC 发送、IPC bridge)
+│   │   ├── main.ts          # 入口 + IPC 处理 + Provider 路由
+│   │   ├── dashscope.ts     # DashScope WebSocket API 客户端
+│   │   ├── openrouter.ts    # OpenRouter REST API 客户端
+│   │   ├── osc.ts           # OSC UDP 发送
+│   │   └── preload.ts       # contextBridge IPC
 │   ├── src/                 # 渲染进程 (React UI、VAD)
+│   │   ├── lib/
+│   │   │   ├── providers.ts # Provider/模型注册表 & 费用估算
+│   │   │   └── wav.ts       # PCM → WAV 编码
+│   │   ├── hooks/
+│   │   │   ├── useVAD.ts    # 麦克风 VAD + 转录
+│   │   │   └── useSpeakerVAD.ts # 系统音频 VAD + 转录
+│   │   └── components/      # React UI 组件
 │   └── electron-builder.yml # 构建配置
 ├── docs/                    # 用户使用指南 (EN, ZH, JA)
 └── Makefile                 # 开发便捷命令
@@ -106,7 +121,9 @@ vrcflow/
 
 **客户端**: Electron 40 · Vite 7 · React 19 · TypeScript · @ricky0123/vad-web (Silero VAD)
 
-**语音识别/翻译**: DashScope WebSocket API (gummy-chat-v1)，使用 `ws` 库
+**语音识别/翻译 Provider**：
+- 阿里云 DashScope — WebSocket API (gummy-chat-v1)，实时流式处理
+- OpenRouter — REST API，多模型可选（Voxtral Small 24B、Gemini 3.1 Flash Lite）
 
 **CI/CD**: GitHub Actions — 推送 `v*` tag 自动构建 Windows 安装包并创建 Release
 

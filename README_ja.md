@@ -4,7 +4,7 @@
 
 VRChat 向けリアルタイム音声翻訳デスクトップアプリ。
 
-マイクで音声をキャプチャ → ローカル VAD でスライス → DashScope ASR 認識 + 翻訳 → OSC 経由で VRChat Chatbox に送信。
+マイク / システム音声キャプチャ → ローカル VAD でスライス → マルチプロバイダー ASR 認識 + 翻訳 → OSC 経由で VRChat Chatbox に送信。
 
 ## ユーザーガイド
 
@@ -17,11 +17,14 @@ VRChat 向けリアルタイム音声翻訳デスクトップアプリ。
 ## 主な機能
 
 - **リアルタイム音声翻訳** — 話すだけで即座に翻訳、低レイテンシー
+- **マルチプロバイダー対応** — Aliyun DashScope と OpenRouter から選択可能、複数のモデルに対応
+- **マイク + システム音声キャプチャ** — 自分の声（マイク）や他者の声（システム音声）を翻訳
 - **ローカル VAD 検出** — Silero VAD (ONNX) がブラウザ上でローカル推論、有効な音声セグメントのみ送信
-- **DashScope 直接接続** — バックエンドサーバー不要、ユーザー自身の API Key を使用
+- **バックエンド不要** — ユーザー自身の API Key を使用、中間サーバー不要
 - **VRChat OSC 連携** — 翻訳結果を VRChat Chatbox に自動プッシュ
+- **SteamVR オーバーレイ** — VR 内で翻訳結果を直接表示するオプションモード
 - **多言語 UI** — English / 中文 / 日本語
-- **ダッシュボードと履歴** — 日次使用量・費用の追跡、過去の翻訳履歴の閲覧
+- **ダッシュボードと履歴** — プロバイダー別の日次使用量・費用の追跡、過去の翻訳履歴の閲覧
 - **アップデートチェッカー** — 新しいバージョンが利用可能な場合に通知
 
 ## クイックスタート
@@ -87,8 +90,20 @@ cd client && npm run build
 ```
 vrcflow/
 ├── client/                  # Electron + Vite + React + TypeScript
-│   ├── electron/            # メインプロセス（DashScope API、OSC 送信、IPC bridge）
+│   ├── electron/            # メインプロセス（Provider API、OSC 送信、IPC bridge）
+│   │   ├── main.ts          # エントリ + IPC ハンドラ + Provider ルーティング
+│   │   ├── dashscope.ts     # DashScope WebSocket API クライアント
+│   │   ├── openrouter.ts    # OpenRouter REST API クライアント
+│   │   ├── osc.ts           # OSC UDP 送信
+│   │   └── preload.ts       # contextBridge IPC
 │   ├── src/                 # レンダラープロセス（React UI、VAD）
+│   │   ├── lib/
+│   │   │   ├── providers.ts # Provider/モデルレジストリ & コスト算出
+│   │   │   └── wav.ts       # PCM → WAV エンコード
+│   │   ├── hooks/
+│   │   │   ├── useVAD.ts    # マイク VAD + 文字起こし
+│   │   │   └── useSpeakerVAD.ts # システム音声 VAD + 文字起こし
+│   │   └── components/      # React UI コンポーネント
 │   └── electron-builder.yml # ビルド設定
 ├── docs/                    # ユーザーガイド（EN, ZH, JA）
 └── Makefile                 # 開発コマンド
@@ -106,7 +121,9 @@ vrcflow/
 
 **クライアント**: Electron 40 · Vite 7 · React 19 · TypeScript · @ricky0123/vad-web (Silero VAD)
 
-**音声認識/翻訳**: DashScope WebSocket API (gummy-chat-v1)、`ws` パッケージ
+**音声認識/翻訳プロバイダー**：
+- Aliyun DashScope — WebSocket API (gummy-chat-v1)、リアルタイムストリーミング
+- OpenRouter — REST API、複数モデル対応（Voxtral Small 24B、Gemini 3.1 Flash Lite）
 
 **CI/CD**: GitHub Actions — `v*` タグをプッシュすると Windows インストーラーを自動ビルドし Release を作成
 
