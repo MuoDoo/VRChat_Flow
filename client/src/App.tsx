@@ -4,7 +4,7 @@ import MicControl from "./components/MicControl";
 import SpeakerControl from "./components/SpeakerControl";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
-
+import Tutorial from "./components/Tutorial";
 import Dashboard from "./components/Dashboard";
 import History from "./components/History";
 import LanguageSwitcher from "./components/LanguageSwitcher";
@@ -69,6 +69,14 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    const seen = localStorage.getItem("vrcflow-tutorialSeen");
+    if (!seen) {
+      localStorage.setItem("vrcflow-tutorialSeen", "true");
+      return true;
+    }
+    return false;
+  });
 
   // Provider settings
   const [provider, setProvider] = useState(() =>
@@ -365,6 +373,11 @@ export default function App() {
         <h1 style={styles.title}>{t("app.title")}</h1>
         <div style={styles.headerRight}>
           <span style={styles.providerBadge}>{providerLabel}</span>
+          <button onClick={() => setShowTutorial(true)} style={styles.iconBtn} title={t("tutorial.title")}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm8-3.5a.75.75 0 01.75.75v.5a.75.75 0 01-1.5 0v-.5A.75.75 0 018 4.5zM6.5 8a.75.75 0 01.75-.75h.75a.75.75 0 01.75.75v2.5h.25a.75.75 0 010 1.5h-2a.75.75 0 010-1.5h.25V8.75H7.25A.75.75 0 016.5 8z" />
+            </svg>
+          </button>
           <button
             onClick={() => window.electronAPI?.openExternal("https://github.com/MuoDoo/VRCFlow")}
             style={styles.iconBtn}
@@ -405,6 +418,7 @@ export default function App() {
         </div>
       )}
 
+      {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
       {showDashboard && <Dashboard onClose={() => setShowDashboard(false)} />}
       {showHistory && <History onClose={() => setShowHistory(false)} />}
 
