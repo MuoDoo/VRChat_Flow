@@ -14,6 +14,7 @@ interface SettingsProps {
   processingTimeout: number;
   speechPadMs: number;
   overlayEnabled: boolean;
+  micDeviceId: string;
   onSave: (settings: {
     provider: string;
     dashscopeKey: string;
@@ -25,6 +26,7 @@ interface SettingsProps {
     displayCurrency: string;
     processingTimeout: number;
     speechPadMs: number;
+    micDeviceId: string;
   }) => void;
   onOverlayToggle: (enabled: boolean) => void;
   onClose: () => void;
@@ -42,6 +44,7 @@ export default function Settings({
   processingTimeout: initTimeout,
   speechPadMs: initSpeechPad,
   overlayEnabled,
+  micDeviceId: initMicDeviceId,
   onSave,
   onOverlayToggle,
   onClose,
@@ -61,19 +64,18 @@ export default function Settings({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [modelDetailId, setModelDetailId] = useState<string | null>(null);
   const [showDashscopeHelp, setShowDashscopeHelp] = useState(false);
-  const [defaultInput, setDefaultInput] = useState("");
-  const [defaultOutput, setDefaultOutput] = useState("");
+  const [micDevice, setMicDevice] = useState(initMicDeviceId);
+  const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [outputDevices, setOutputDevices] = useState<MediaDeviceInfo[]>([]);
 
   const refreshDevices = async () => {
     try {
       const devs = await navigator.mediaDevices.enumerateDevices();
-      const input = devs.find((d) => d.kind === "audioinput" && d.deviceId === "default");
-      const output = devs.find((d) => d.kind === "audiooutput" && d.deviceId === "default");
-      setDefaultInput(input?.label || devs.find((d) => d.kind === "audioinput")?.label || "--");
-      setDefaultOutput(output?.label || devs.find((d) => d.kind === "audiooutput")?.label || "--");
+      setInputDevices(devs.filter((d) => d.kind === "audioinput"));
+      setOutputDevices(devs.filter((d) => d.kind === "audiooutput"));
     } catch {
-      setDefaultInput("--");
-      setDefaultOutput("--");
+      setInputDevices([]);
+      setOutputDevices([]);
     }
   };
 
@@ -93,6 +95,7 @@ export default function Settings({
       displayCurrency: currency,
       processingTimeout: Math.max(1, parseInt(timeout, 10) || 5),
       speechPadMs: Math.max(100, parseInt(speechPad, 10) || 600),
+      micDeviceId: micDevice,
     });
     onClose();
   };
@@ -379,14 +382,32 @@ export default function Settings({
               </button>
             </div>
             <div style={styles.deviceSection}>
-              <div style={styles.deviceRow}>
+              <div style={styles.deviceSelectRow}>
                 <span style={styles.deviceKind}>{t("settings.inputDevices")}</span>
-                <span style={styles.deviceName}>{defaultInput}</span>
+                <select
+                  style={styles.deviceSelect}
+                  value={micDevice}
+                  onChange={(e) => setMicDevice(e.target.value)}
+                >
+                  <option value="default">{t("settings.defaultDevice")}</option>
+                  {inputDevices
+                    .filter((d) => d.deviceId !== "default" && d.deviceId !== "communications")
+                    .map((d) => (
+                      <option key={d.deviceId} value={d.deviceId}>
+                        {d.label || d.deviceId}
+                      </option>
+                    ))}
+                </select>
               </div>
-              <div style={styles.deviceRow}>
+              <div style={styles.deviceSelectRow}>
                 <span style={styles.deviceKind}>{t("settings.outputDevices")}</span>
-                <span style={styles.deviceName}>{defaultOutput}</span>
+                <span style={styles.deviceName}>
+                  {outputDevices.find((d) => d.deviceId === "default")?.label
+                    || outputDevices[0]?.label
+                    || t("settings.speakerLoopbackNote")}
+                </span>
               </div>
+              <div style={styles.pricingNote}>{t("settings.speakerLoopbackNote")}</div>
             </div>
 
             <div style={styles.separator} />
@@ -988,11 +1009,21 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 10px",
     fontSize: "12px",
   },
-  deviceRow: {
+  deviceSelectRow: {
     display: "flex",
-    alignItems: "baseline",
+    alignItems: "center",
     gap: "8px",
     padding: "3px 0",
+  },
+  deviceSelect: {
+    flex: 1,
+    padding: "4px 8px",
+    borderRadius: "4px",
+    border: "1px solid #444",
+    backgroundColor: "#222244",
+    color: "#e0e0e0",
+    fontSize: "12px",
+    outline: "none",
   },
   deviceKind: {
     fontSize: "11px",

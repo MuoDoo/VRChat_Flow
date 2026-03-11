@@ -10,6 +10,7 @@ interface UseVADOptions {
   targetLang: string;
   timeoutSec: number;
   speechPadMs: number;
+  micDeviceId?: string;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -31,7 +32,7 @@ interface UseVADReturn {
 }
 
 export function useVAD(options: UseVADOptions): UseVADReturn {
-  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, speechPadMs, onResult, onError } =
+  const { provider, apiKey, model, sourceLang, targetLang, timeoutSec, speechPadMs, micDeviceId, onResult, onError } =
     options;
   const [isProcessing, setIsProcessing] = useState(false);
   const inflightRef = useRef(false);
@@ -117,6 +118,8 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     [uploadAudio]
   );
 
+  const useCustomDevice = micDeviceId && micDeviceId !== "default";
+
   const vad = useMicVAD({
     startOnLoad: false,
     model: "legacy",
@@ -126,6 +129,12 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
     minSpeechMs: 150,
     preSpeechPadMs: 300,
     redemptionMs: speechPadMs,
+    ...(useCustomDevice && {
+      getStream: async () =>
+        navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: micDeviceId } },
+        }),
+    }),
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },
