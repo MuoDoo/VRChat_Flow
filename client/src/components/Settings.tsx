@@ -47,7 +47,7 @@ export default function Settings({
   onClose,
 }: SettingsProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"general" | "provider">("provider");
+  const [activeTab, setActiveTab] = useState<"general" | "provider">("general");
   const [providerSelection, setProviderSelection] = useState(initProvider);
   const [dashscopeKey, setDashscopeKey] = useState(initDashscopeKey);
   const [openrouterKey, setOpenrouterKey] = useState(initOpenrouterKey);
@@ -136,16 +136,6 @@ export default function Settings({
         {/* Tab bar */}
         <div style={styles.tabBar}>
           <button
-            onClick={() => setActiveTab("provider")}
-            style={{
-              ...styles.tab,
-              borderBottomColor: activeTab === "provider" ? "#6c8ebf" : "transparent",
-              color: activeTab === "provider" ? "#fff" : "#888",
-            }}
-          >
-            {t("settings.providerTab")}
-          </button>
-          <button
             onClick={() => setActiveTab("general")}
             style={{
               ...styles.tab,
@@ -154,6 +144,16 @@ export default function Settings({
             }}
           >
             {t("settings.generalTab")}
+          </button>
+          <button
+            onClick={() => setActiveTab("provider")}
+            style={{
+              ...styles.tab,
+              borderBottomColor: activeTab === "provider" ? "#6c8ebf" : "transparent",
+              color: activeTab === "provider" ? "#fff" : "#888",
+            }}
+          >
+            {t("settings.providerTab")}
           </button>
         </div>
 
