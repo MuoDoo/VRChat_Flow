@@ -58,6 +58,8 @@
   "settings.inputDevices": "Input",
   "settings.outputDevices": "Output",
   "settings.refreshDevices": "Refresh",
+  "settings.defaultDevice": "Default",
+  "settings.speakerLoopbackNote": "Speaker captures all system audio (loopback)",
   "settings.displayCurrency": "Display Currency",
   "settings.advanced": "Advanced",
   "settings.processingTimeout": "Processing Timeout",

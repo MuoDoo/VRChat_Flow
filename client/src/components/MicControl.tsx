@@ -1,5 +1,10 @@
+import { forwardRef, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import { useVAD } from "../hooks/useVAD";
+
+export interface MicControlHandle {
+  stop: () => void;
+}
 
 interface MicControlProps {
   provider: string;
@@ -9,6 +14,7 @@ interface MicControlProps {
   targetLang: string;
   timeoutSec: number;
   speechPadMs: number;
+  micDeviceId?: string;
   onResult: (data: {
     transcription: string;
     translation: string;
@@ -20,7 +26,7 @@ interface MicControlProps {
   onError: (error: string) => void;
 }
 
-export default function MicControl({
+const MicControl = forwardRef<MicControlHandle, MicControlProps>(function MicControl({
   provider,
   apiKey,
   model,
@@ -28,9 +34,10 @@ export default function MicControl({
   targetLang,
   timeoutSec,
   speechPadMs,
+  micDeviceId,
   onResult,
   onError,
-}: MicControlProps) {
+}, ref) {
   const { t } = useTranslation();
   const { start, stop, isListening, isProcessing, vadLoading, vadError } = useVAD({
     provider,
@@ -40,9 +47,12 @@ export default function MicControl({
     targetLang,
     timeoutSec,
     speechPadMs,
+    micDeviceId,
     onResult,
     onError,
   });
+
+  useImperativeHandle(ref, () => ({ stop }), [stop]);
 
   const status = vadError
     ? String(vadError)
@@ -86,7 +96,9 @@ export default function MicControl({
       )}
     </div>
   );
-}
+});
+
+export default MicControl;
 
 const styles: Record<string, React.CSSProperties> = {
   container: {

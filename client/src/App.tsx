@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import MicControl from "./components/MicControl";
-import SpeakerControl from "./components/SpeakerControl";
+import MicControl, { type MicControlHandle } from "./components/MicControl";
+import SpeakerControl, { type SpeakerControlHandle } from "./components/SpeakerControl";
 import TranslationView from "./components/TranslationView";
 import Settings from "./components/Settings";
 import Tutorial from "./components/Tutorial";
@@ -114,6 +114,13 @@ export default function App() {
   const [overlayEnabled, setOverlayEnabled] = useState(() =>
     localStorage.getItem("vrcflow-overlayEnabled") === "true"
   );
+  const [micDeviceId, setMicDeviceId] = useState(() =>
+    localStorage.getItem("vrcflow-micDeviceId") || "default"
+  );
+
+  // Refs for stopping controls on settings save
+  const micRef = useRef<MicControlHandle>(null);
+  const speakerRef = useRef<SpeakerControlHandle>(null);
 
   // Computed active key/model
   const activeApiKey = provider === "openrouter" ? openrouterKey : apiKey;
@@ -339,7 +346,12 @@ export default function App() {
       displayCurrency: string;
       processingTimeout: number;
       speechPadMs: number;
+      micDeviceId: string;
     }) => {
+      // Auto-stop active translation/listening before applying new settings
+      micRef.current?.stop();
+      speakerRef.current?.stop();
+
       setProvider(settings.provider);
       setApiKey(settings.dashscopeKey);
       setOpenrouterKey(settings.openrouterKey);
@@ -350,6 +362,7 @@ export default function App() {
       setDisplayCurrency(settings.displayCurrency);
       setProcessingTimeout(settings.processingTimeout);
       setSpeechPadMs(settings.speechPadMs);
+      setMicDeviceId(settings.micDeviceId);
       localStorage.setItem("vrcflow-provider", settings.provider);
       localStorage.setItem("vrcflow-apiKey", settings.dashscopeKey);
       localStorage.setItem("vrcflow-openrouterKey", settings.openrouterKey);
@@ -360,6 +373,7 @@ export default function App() {
       localStorage.setItem("vrcflow-displayCurrency", settings.displayCurrency);
       localStorage.setItem("vrcflow-processingTimeout", String(settings.processingTimeout));
       localStorage.setItem("vrcflow-speechPadMs", String(settings.speechPadMs));
+      localStorage.setItem("vrcflow-micDeviceId", settings.micDeviceId);
     },
     []
   );
@@ -435,6 +449,7 @@ export default function App() {
           processingTimeout={processingTimeout}
           speechPadMs={speechPadMs}
           overlayEnabled={overlayEnabled}
+          micDeviceId={micDeviceId}
           onSave={saveSettings}
           onOverlayToggle={toggleOverlay}
           onClose={() => setShowSettings(false)}
@@ -444,6 +459,7 @@ export default function App() {
       <TranslationView entries={entries} />
 
       <MicControl
+        ref={micRef}
         provider={provider}
         apiKey={activeApiKey}
         model={activeModel}
@@ -451,11 +467,13 @@ export default function App() {
         targetLang={targetLang}
         timeoutSec={processingTimeout}
         speechPadMs={speechPadMs}
+        micDeviceId={micDeviceId}
         onResult={handleResult}
         onError={handleError}
       />
 
       <SpeakerControl
+        ref={speakerRef}
         provider={provider}
         apiKey={activeApiKey}
         model={activeModel}

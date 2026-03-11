@@ -1,5 +1,10 @@
+import { forwardRef, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import { useSpeakerVAD } from "../hooks/useSpeakerVAD";
+
+export interface SpeakerControlHandle {
+  stop: () => void;
+}
 
 interface SpeakerControlProps {
   provider: string;
@@ -20,7 +25,7 @@ interface SpeakerControlProps {
   onError: (error: string) => void;
 }
 
-export default function SpeakerControl({
+const SpeakerControl = forwardRef<SpeakerControlHandle, SpeakerControlProps>(function SpeakerControl({
   provider,
   apiKey,
   model,
@@ -30,7 +35,7 @@ export default function SpeakerControl({
   speechPadMs,
   onResult,
   onError,
-}: SpeakerControlProps) {
+}, ref) {
   const { t } = useTranslation();
   const { start, stop, isListening, isProcessing, vadLoading, vadError } =
     useSpeakerVAD({
@@ -45,6 +50,8 @@ export default function SpeakerControl({
       onResult,
       onError,
     });
+
+  useImperativeHandle(ref, () => ({ stop }), [stop]);
 
   const status = vadError
     ? String(vadError)
@@ -100,7 +107,9 @@ export default function SpeakerControl({
       )}
     </div>
   );
-}
+});
+
+export default SpeakerControl;
 
 const styles: Record<string, React.CSSProperties> = {
   container: {

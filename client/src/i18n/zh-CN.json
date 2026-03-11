@@ -58,6 +58,8 @@
   "settings.inputDevices": "输入",
   "settings.outputDevices": "输出",
   "settings.refreshDevices": "刷新",
+  "settings.defaultDevice": "默认",
+  "settings.speakerLoopbackNote": "扬声器捕获全部系统音频（回环）",
   "settings.displayCurrency": "显示货币",
   "settings.advanced": "高级选项",
   "settings.processingTimeout": "处理超时",

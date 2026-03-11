@@ -58,6 +58,8 @@
   "settings.inputDevices": "入力",
   "settings.outputDevices": "出力",
   "settings.refreshDevices": "更新",
+  "settings.defaultDevice": "デフォルト",
+  "settings.speakerLoopbackNote": "スピーカーはシステム音声全体をキャプチャします（ループバック）",
   "settings.displayCurrency": "表示通貨",
   "settings.advanced": "詳細設定",
   "settings.processingTimeout": "処理タイムアウト",
