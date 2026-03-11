@@ -15,6 +15,7 @@ interface TranscribeResult {
   audioDuration: number;
   usage?: UsageInfo;
   generationId?: string;
+  isNoise?: boolean;
 }
 
 interface OverlayInitResult {

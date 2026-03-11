@@ -17,6 +17,7 @@ interface UseSpeakerVADOptions {
     processingTime: number;
     usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
     generationId?: string;
+    isNoise?: boolean;
   }) => void;
   onError: (error: string) => void;
 }
@@ -95,6 +96,7 @@ export function useSpeakerVAD(
       processingTime,
       usage: result.usage,
       generationId: result.generationId,
+      isNoise: result.isNoise,
     });
   }, []);
 
@@ -139,6 +141,13 @@ export function useSpeakerVAD(
     preSpeechPadMs: 300,
     redemptionMs: speechPadMs,
     getStream: acquireLoopbackStream,
+    resumeStream: async (_oldStream: MediaStream) => {
+      // Default resumeStream calls getUserMedia (microphone) — override to
+      // re-acquire the loopback stream so the second start still captures
+      // system audio instead of the mic.
+      _oldStream.getTracks().forEach((t) => t.stop());
+      return acquireLoopbackStream();
+    },
     onSpeechEnd: (audio: Float32Array) => {
       processQueue(audio);
     },

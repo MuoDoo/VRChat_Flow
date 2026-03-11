@@ -142,12 +142,13 @@ export default function App() {
         processingTime: number;
         usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
         generationId?: string;
+        isNoise?: boolean;
       },
       source: "mic" | "speaker"
     ) => {
       const id = ++entryIdRef.current;
       const now = new Date();
-      const isNoise = !data.transcription.trim() && !data.translation.trim();
+      const isNoise = data.isNoise === true || (!data.transcription.trim() && !data.translation.trim());
 
       setEntries((prev) => [
         ...prev,
@@ -196,6 +197,7 @@ export default function App() {
       processingTime: number;
       usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
       generationId?: string;
+      isNoise?: boolean;
     }) => {
       addEntry(data, "mic");
     },
@@ -292,9 +294,13 @@ export default function App() {
       processingTime: number;
       usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
       generationId?: string;
+      isNoise?: boolean;
     }) => {
       addEntry(data, "speaker");
-      sendToOverlay(data.transcription, data.translation);
+      // Skip overlay for noise (provider-flagged or empty content)
+      if (data.isNoise !== true) {
+        sendToOverlay(data.transcription, data.translation);
+      }
     },
     [addEntry, sendToOverlay]
   );

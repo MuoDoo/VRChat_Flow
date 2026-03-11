@@ -14,6 +14,7 @@ export interface TranscribeResult {
   audioDuration: number;
   usage?: UsageInfo;
   generationId?: string;
+  isNoise?: boolean;
 }
 
 export async function transcribeAudio(

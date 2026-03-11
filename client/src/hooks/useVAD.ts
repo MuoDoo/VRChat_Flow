@@ -18,6 +18,7 @@ interface UseVADOptions {
     processingTime: number;
     usage?: { promptTokens: number; completionTokens: number; totalTokens: number; cost?: number };
     generationId?: string;
+    isNoise?: boolean;
   }) => void;
   onError: (error: string) => void;
 }
@@ -82,6 +83,7 @@ export function useVAD(options: UseVADOptions): UseVADReturn {
       processingTime,
       usage: result.usage,
       generationId: result.generationId,
+      isNoise: result.isNoise,
     });
   }, []);
 
