@@ -181,7 +181,7 @@ export default function App() {
 
       // Only send mic speech to VRChat OSC (not speaker translations)
       if (!isNoise && source === "mic") {
-        const oscText = `${data.transcription}\n${data.translation}`;
+        const oscText = `${data.translation}\n${data.transcription}`;
         window.electronAPI?.sendOsc(oscText, oscPort);
       }
     },

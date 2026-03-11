@@ -8,7 +8,7 @@ import dgram from "node:dgram";
 // - VRChat /chatbox/input expects: string message, bool immediate (True), bool notify (False)
 // - Bool true uses type tag 'T' with no extra data bytes
 // - Bool false uses type tag 'F' with no extra data bytes
-// - VRChat chatbox limit: ~144 UTF-8 bytes total. Two-line format: "original\ntranslated"
+// - VRChat chatbox limit: ~144 UTF-8 bytes total. Two-line format: "translated\noriginal"
 //   ~70 display columns per line, CJK chars = 2 columns each
 // - VRChat enforces ~1500ms minimum between chatbox updates
 
