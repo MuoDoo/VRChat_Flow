@@ -146,5 +146,8 @@
   "tutorial.featureOsc": "VRChat OSC",
   "tutorial.featureOscDesc": "Automatically sends mic translation results to VRChat chatbox via OSC, default port 9000.",
   "tutorial.ready": "All set! Click the button below to start using VRCFlow.",
-  "tutorial.startBtn": "Get Started"
+  "tutorial.startBtn": "Get Started",
+
+  "osc.muted": "Muted",
+  "osc.mutedTooltip": "VRChat is muted, OSC messages paused"
 }

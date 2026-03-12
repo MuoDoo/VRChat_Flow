@@ -146,5 +146,8 @@
   "tutorial.featureOsc": "VRChat OSC",
   "tutorial.featureOscDesc": "マイク翻訳結果をOSC経由でVRChatチャットボックスに自動送信します。デフォルトポートは9000です。",
   "tutorial.ready": "準備完了！下のボタンをクリックしてVRCFlowを使い始めましょう。",
-  "tutorial.startBtn": "使い始める"
+  "tutorial.startBtn": "使い始める",
+
+  "osc.muted": "ミュート中",
+  "osc.mutedTooltip": "VRChatがミュート中のため、OSCメッセージの送信を停止しています"
 }

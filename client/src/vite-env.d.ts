@@ -25,6 +25,8 @@ interface OverlayInitResult {
 
 interface ElectronAPI {
   sendOsc: (message: string, port: number) => Promise<void>;
+  isMuted: () => Promise<boolean>;
+  onMuteChanged: (callback: (muted: boolean) => void) => () => void;
   openExternal: (url: string) => Promise<void>;
   openLogFile: () => Promise<void>;
   transcribe: (
