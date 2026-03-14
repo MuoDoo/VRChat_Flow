@@ -8,7 +8,7 @@ import {
 } from "electron";
 import path from "node:path";
 import fs from "node:fs";
-import { sendChatbox } from "./osc";
+import { sendChatbox, startMuteListener, stopMuteListener, isMuted, oscEvents } from "./osc";
 import { transcribeAudio } from "./dashscope";
 import { transcribeAudioOpenRouter } from "./openrouter";
 import {
@@ -120,6 +120,17 @@ app.whenReady().then(() => {
     sendChatbox(message, port);
   });
 
+  // VRChat mute detection — listen on VRChat's OSC output port (default 9001)
+  startMuteListener(9001);
+
+  ipcMain.handle("osc:isMuted", () => {
+    return isMuted();
+  });
+
+  oscEvents.on("muteChanged", (muted: boolean) => {
+    mainWindow?.webContents.send("osc:muteChanged", muted);
+  });
+
   ipcMain.handle("shell:openExternal", (_event, url: string) => {
     shell.openExternal(url);
   });
@@ -178,5 +189,6 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   shutdownOverlay();
+  stopMuteListener();
   if (process.platform !== "darwin") app.quit();
 });

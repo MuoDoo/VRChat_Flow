@@ -146,5 +146,8 @@
   "tutorial.featureOsc": "VRChat OSC",
   "tutorial.featureOscDesc": "自动将麦克风翻译结果发送到 VRChat 聊天框，默认端口 9000。",
   "tutorial.ready": "一切准备就绪！点击下方按钮开始使用 VRCFlow。",
-  "tutorial.startBtn": "开始使用"
+  "tutorial.startBtn": "开始使用",
+
+  "osc.muted": "已静音",
+  "osc.mutedTooltip": "VRChat 已静音，OSC 消息暂停发送"
 }

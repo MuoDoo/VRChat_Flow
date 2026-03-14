@@ -3,6 +3,13 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("electronAPI", {
   sendOsc: (message: string, port: number) =>
     ipcRenderer.invoke("osc:send", message, port),
+  isMuted: () => ipcRenderer.invoke("osc:isMuted") as Promise<boolean>,
+  onMuteChanged: (callback: (muted: boolean) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (_event: any, muted: boolean) => callback(muted);
+    ipcRenderer.on("osc:muteChanged", handler);
+    return () => { ipcRenderer.removeListener("osc:muteChanged", handler); };
+  },
   openExternal: (url: string) =>
     ipcRenderer.invoke("shell:openExternal", url),
   openLogFile: () => ipcRenderer.invoke("log:openFile"),

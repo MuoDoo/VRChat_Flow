@@ -117,6 +117,7 @@ export default function App() {
   const [micDeviceId, setMicDeviceId] = useState(() =>
     localStorage.getItem("vrcflow-micDeviceId") || "default"
   );
+  const [vrchatMuted, setVrchatMuted] = useState(false);
 
   // Refs for stopping controls on settings save
   const micRef = useRef<MicControlHandle>(null);
@@ -333,6 +334,16 @@ export default function App() {
     };
   }, []);
 
+  // Subscribe to VRChat mute state changes
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    // Get initial state
+    window.electronAPI.isMuted().then(setVrchatMuted);
+    // Listen for changes
+    const unsubscribe = window.electronAPI.onMuteChanged(setVrchatMuted);
+    return unsubscribe;
+  }, []);
+
   const handleError = useCallback((error: string) => {
     console.error("Transcription error:", error);
     setErrorMsg(error);
@@ -393,6 +404,11 @@ export default function App() {
         <h1 style={styles.title}>{t("app.title")}</h1>
         <div style={styles.headerRight}>
           <span style={styles.providerBadge}>{providerLabel}</span>
+          {vrchatMuted && (
+            <span style={styles.muteBadge} title={t("osc.mutedTooltip")}>
+              {t("osc.muted")}
+            </span>
+          )}
           <button onClick={() => setShowTutorial(true)} style={styles.iconBtn} title={t("tutorial.title")}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm8-3.5a.75.75 0 01.75.75v.5a.75.75 0 01-1.5 0v-.5A.75.75 0 018 4.5zM6.5 8a.75.75 0 01.75-.75h.75a.75.75 0 01.75.75v2.5h.25a.75.75 0 010 1.5h-2a.75.75 0 010-1.5h.25V8.75H7.25A.75.75 0 016.5 8z" />
@@ -525,6 +541,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "10px",
     color: "#888",
     backgroundColor: "#2a2a4a",
+    padding: "2px 6px",
+    borderRadius: "3px",
+  },
+  muteBadge: {
+    fontSize: "10px",
+    color: "#ff6b6b",
+    backgroundColor: "rgba(231,76,60,0.15)",
     padding: "2px 6px",
     borderRadius: "3px",
   },
